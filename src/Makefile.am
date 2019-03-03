@@ -2,9 +2,9 @@ AM_CPPFLAGS = -iquote $(top_srcdir) -iquote $(top_srcdir)/cwds
 
 bin_PROGRAMS = quantum
 
-quantum_SOURCES = quantum.cxx
+quantum_SOURCES = quantum.cxx QuBit.cxx ZState.cxx QState.cxx Complex.cxx QVector.cxx QMatrix.cxx
 quantum_CXXFLAGS = @LIBCWD_FLAGS@
-quantum_LDADD = ../cwds/libcwds.la
+quantum_LDADD = ../utils/libutils.la ../cwds/libcwds.la
 
 # --------------- Maintainer's Section
 
