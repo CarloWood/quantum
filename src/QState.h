@@ -1,5 +1,7 @@
 #pragma once
 
+#include "XState.h"
+#include "YState.h"
 #include "ZState.h"
 #include "QVector.h"
 #include <iosfwd>
@@ -16,6 +18,8 @@ class QState
   explicit QState(QVector const& coef) : m_coef(coef) { }
 
  public:
+  QState(XState state);
+  QState(YState state);
   QState(ZState state);
 
   friend std::ostream& operator<<(std::ostream& os, QState const& state);
