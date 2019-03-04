@@ -1,37 +1,47 @@
 #include "QMatrix.h"
 #include "Complex.h"
+#include <cmath>
 
 namespace quantum {
 
-static double const sqrt_0_5 = 0.70710678118;
-
 static QMatrix const H{
-  sqrt_0_5,  sqrt_0_5,
-  sqrt_0_5, -sqrt_0_5
+  cos<1,4>::pi, cos<-1,4>::pi,
+  sin<1,4>::pi, sin<-1,4>::pi
 };
 
 static QMatrix const T{
-  one,  zero,
-  zero, Complex{sqrt_0_5, sqrt_0_5}
+  1,  0,
+  0,  exp<1,4>::i_pi
 };
 
 static QMatrix const X{
-  zero, one,
-  one,  zero
+  0,  1,
+  1,  0
 };
 
 static QMatrix const Y{
-  zero, -one_i,
-  one_i, zero
+  0, -i,
+  i,  0
 };
 
 static QMatrix const Z{
-  one, zero,
-  zero, -one
+  1,  0,
+  0, -1
 };
 
-static QMatrix const S = T * T;
-static QMatrix const Sdg = Z * S;
-static QMatrix const Tdg = Sdg * T;
+static QMatrix const S{ // T^2
+  1,  0,
+  0,  i
+};
+
+static QMatrix const Sdg{ // S^-1
+  1,  0,
+  0, -i
+};
+
+static QMatrix const Tdg{ // T^-1
+  1,  0,
+  0,  exp<-1,4>::i_pi
+};
 
 } // namespace quantum

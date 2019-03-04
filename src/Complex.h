@@ -14,7 +14,7 @@ class Complex
   explicit Complex(std::complex<double> value) : m_value(value) { }
 
  public:
-  Complex(double real, double imag) : m_value(real, imag) { }
+  constexpr Complex(double real, double imag) : m_value(real, imag) { }
   Complex(double real) : m_value(real, 0.0) { }
 
   Complex& operator*=(Complex const& z) { m_value *= z.m_value; return *this; }
@@ -33,8 +33,21 @@ class Complex
   friend std::ostream& operator<<(std::ostream& os, Complex const& z);
 };
 
-static Complex const one{1, 0};
-static Complex const zero{0, 0};
-static Complex const one_i{0, 1};
+template<intmax_t Num, intmax_t Den>
+struct sin {
+  static constexpr double pi = std::sin(Num * M_PI / Den);
+};
+
+template<intmax_t Num, intmax_t Den>
+struct cos {
+  static constexpr double pi = std::cos(Num * M_PI / Den);
+};
+
+template<intmax_t Num, intmax_t Den>
+struct exp {
+  static constexpr Complex i_pi{cos<Num, Den>::pi, sin<Num, Den>::pi};
+};
+
+static constexpr Complex i{0, 1};
 
 } // namespace quantum

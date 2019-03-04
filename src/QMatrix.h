@@ -17,7 +17,7 @@ class QMatrix
 
  public:
   QMatrix(Complex a_00, Complex a_01,
-         Complex a_10, Complex a_11) :
+          Complex a_10, Complex a_11) :
     m_a_00(a_00), m_a_01(a_01), m_a_10(a_10), m_a_11(a_11) { }
 
  friend std::ostream& operator<<(std::ostream& os, QMatrix const&);

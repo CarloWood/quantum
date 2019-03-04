@@ -9,16 +9,11 @@ int main()
 {
   Debug(NAMESPACE_DEBUG::init());
 
-  QuBit qb(Z0);
+  QuBit qb0(Z0);
+  QuBit qb1(Z1);
 
-  qb = H * qb;
-  qb = S * qb;
-  qb = T * qb;
-  qb = H * qb;
-  qb = Sdg * qb;
-
-  Dout(dc::notice, qb);
-
-  qb = H * qb;
-  Dout(dc::notice, qb);
+  Dout(dc::notice, qb0);
+  Dout(dc::notice, qb1);
+  Dout(dc::notice, "H = " << H);
+  Dout(dc::notice, "T = " << T);
 }

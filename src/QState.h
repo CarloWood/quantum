@@ -20,6 +20,7 @@ class QState
 
   friend std::ostream& operator<<(std::ostream& os, QState const& state);
   friend QState operator*(QMatrix const& m, QState const& qstate);
+  friend bool operator==(QState const& qstate1, QState const& qstate2);
 };
 
 } // namespace quantum
