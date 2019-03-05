@@ -26,6 +26,9 @@ class Complex
   // Complex conjugate.
   Complex operator*() const { return Complex{std::conj(m_value)}; }
 
+  // Snap complex value to well-known values.
+  void snap(double abs_relative_error);
+
   friend bool operator==(Complex const& z1, Complex const& z2);
   friend Complex operator*(Complex const& z1, Complex const& z2) { Complex result{z1}; result *= z2; return result; }
   friend Complex operator+(Complex const& z1, Complex const& z2) { Complex result{z1}; result += z2; return result; }

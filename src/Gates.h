@@ -1,47 +1,15 @@
 #include "QMatrix.h"
-#include "Complex.h"
 #include <cmath>
 
 namespace quantum {
 
-static QMatrix const X{
-  0,  1,
-  1,  0
-};
-
-static QMatrix const Y{
-  0, -i,
-  i,  0
-};
-
-static QMatrix const Z{
-  1,  0,
-  0, -1
-};
-
-static QMatrix const S{ // T^2
-  1,  0,
-  0,  i
-};
-
-static QMatrix const Sdg{ // S^-1
-  1,  0,
-  0, -i
-};
-
-static QMatrix const T{
-  1,  0,
-  0,  exp<1,4>::i_pi
-};
-
-static QMatrix const Tdg{ // T^-1
-  1,  0,
-  0,  exp<-1,4>::i_pi
-};
-
-static QMatrix const H{
-  cos<1,4>::pi, cos<-1,4>::pi,
-  sin<1,4>::pi, sin<-1,4>::pi
-};
+extern QMatrix const X;
+extern QMatrix const Y;
+extern QMatrix const Z;
+extern QMatrix const S;
+extern QMatrix const Sdg;
+extern QMatrix const T;
+extern QMatrix const Tdg;
+extern QMatrix const H;
 
 } // namespace quantum
