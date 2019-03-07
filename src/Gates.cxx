@@ -3,6 +3,8 @@
 
 namespace quantum {
 
+namespace gates {
+
 // Instantiation of specialized static constants.
 QuBitField const sin<1, 4>::pi = sqrt_half;
 QuBitField const sin<-1, 4>::pi = -sqrt_half;
@@ -11,44 +13,65 @@ QuBitField const cos<-1, 4>::pi = sqrt_half;
 QuBitField const exp<1, 4>::i_pi{0, 0, 1, 1};   // (1 + i)·√½
 QuBitField const exp<-1, 4>::i_pi{0, 0, 1, -1}; // (1 - i)·√½
 
-QMatrix const X{
-  0,  1,
-  1,  0
+std::array<QMatrix, number_of_gates> const gate = {{
+  // X
+  {
+    0,  1,
+    1,  0
+  },
+
+  // Y
+  {
+    0, -i,
+    i,  0
+  },
+
+  // Z
+  {
+    1,  0,
+    0, -1
+  },
+
+  // S = T^2
+  {
+    1,  0,
+    0,  i
+  },
+
+  // S_inv
+  {
+    1,  0,
+    0, -i
+  },
+
+  // T
+  {
+    1,  0,
+    0,  exp<1,4>::i_pi
+  },
+
+  // T_inv
+  {
+    1,  0,
+    0,  exp<-1,4>::i_pi
+  },
+
+  // H
+  {
+    cos<1,4>::pi, cos<-1,4>::pi,
+    sin<1,4>::pi, sin<-1,4>::pi
+  }
+}};
+
+// (SH)⁻¹
+QMatrix const HS_inv = gate[H] * gate[S_inv];
+
+// Identity matrix.
+QMatrix const I{
+  1, 0,
+  0, 1
 };
 
-QMatrix const Y{
-  0, -i,
-  i,  0
-};
-
-QMatrix const Z{
-  1,  0,
-  0, -1
-};
-
-QMatrix const S{ // T^2
-  1,  0,
-  0,  i
-};
-
-QMatrix const Sdg{ // S^-1
-  1,  0,
-  0, -i
-};
-
-QMatrix const T{
-  1,  0,
-  0,  exp<1,4>::i_pi
-};
-
-QMatrix const Tdg{ // T^-1
-  1,  0,
-  0,  exp<-1,4>::i_pi
-};
-
-QMatrix const H(
-  cos<1,4>::pi, cos<-1,4>::pi,
-  sin<1,4>::pi, sin<-1,4>::pi
-);
+} // namespace gates
 
 } // namespace quantum

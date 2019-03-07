@@ -52,18 +52,26 @@ std::string complex_to_string(mpq_rational r, mpq_rational i, bool need_parens)
   return result.str();
 }
 
-std::string QuBitField::to_string() const
+std::string QuBitField::to_string(bool need_parens) const
 {
-  std::string result;
-  bool have_non_root_part = (nr_ != 0 || ni_ != 0);
-  bool have_root_part = (rr_ != 0 || ri_ != 0);
+  bool have_nr = nr_ != 0;
+  bool have_ni = ni_ != 0;
+  bool have_rr = rr_ != 0;
+  bool have_ri = ri_ != 0;
+  int n_parts = (have_nr ? 1 : 0) + (have_ni ? 1 : 0);
+  int r_parts = (have_rr ? 1 : 0) + (have_ri ? 1 : 0);
+  bool have_non_root_part = n_parts != 0;
+  bool have_root_part = r_parts != 0;
   bool root_part_subtract = false;
+  if (n_parts == 0 || (n_parts == 1 && !have_root_part))
+    need_parens = false;
+  std::string result = need_parens ? "(" : "";
   if (have_non_root_part)
   {
-    result = complex_to_string(nr_, ni_, false);
+    result += complex_to_string(nr_, ni_, false);
     if (have_root_part)
     {
-      root_part_subtract = (rr_ == 0 && ri_ < 0) || (rr_ < 0 && ri_ == 0);
+      root_part_subtract = (!have_rr && ri_ < 0) || (rr_ < 0 && !have_ri);
       if (root_part_subtract)
         result += " - ";
       else
@@ -86,6 +94,8 @@ std::string QuBitField::to_string() const
       result += "·√½";
     }
   }
+  if (need_parens)
+    result += ')';
   return result;
 }
 

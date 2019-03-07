@@ -29,7 +29,7 @@ class QuBitField
   QuBitField& operator*=(QuBitField const& v) { QuBitField self(*this); *this = self * v; return *this; }
   QuBitField operator-() const { return QuBitField(-nr_, -ni_, -rr_, -ri_); }
 
-  std::string to_string() const;
+  std::string to_string(bool need_parens = false) const;
 
   friend QuBitField operator+(QuBitField const& v1, QuBitField const& v2) { QuBitField result(v1); result += v2; return result; }
   friend QuBitField operator-(QuBitField const& v1, QuBitField const& v2) { QuBitField result(v1); result -= v2; return result; }
@@ -38,6 +38,8 @@ class QuBitField
   friend bool operator!=(QuBitField const& v1, QuBitField const& v2) { return v1.nr_ != v2.nr_ || v1.ni_ != v2.ni_ || v1.rr_ != v2.rr_ || v1.ri_ != v2.ri_; }
   friend std::ostream& operator<<(std::ostream& os, QuBitField const& qubit_field);
 };
+
+namespace gates {
 
 static QuBitField const i{0, 1, 0, 0};
 static QuBitField const sqrt_half{0, 0, 1, 0};
@@ -83,5 +85,7 @@ template<>
 struct exp<-1, 4> {
   static QuBitField const i_pi;
 };
+
+} // namespace gates
 
 } // namespace quantum

@@ -1,49 +1,24 @@
 #include "sys.h"
 #include "debug.h"
-#include "QuBit.h"
-#include "Gates.h"
-#include <random>
+#include "Circuit.h"
 
 using namespace quantum;
-
-void apply_to(QuBit& qb, int gate)
-{
-  switch (gate)
-  {
-    case 0:
-      qb = X * qb;
-      break;
-    case 1:
-      qb = H * qb;
-      break;
-    case 2:
-      qb = T * qb;
-      break;
-  }
-}
 
 int main()
 {
   Debug(NAMESPACE_DEBUG::init());
 
-  std::random_device rd;
-  std::mt19937 rng(rd());
-  std::uniform_int_distribution<int> uni(0, 2);
+  Circuit qc(2, 2);
+  Link l1;
 
-  QuBit Yqb(Z0);
-  QuBit Zqb(Z0);
-  QuBit Sqb(Z0);
-
-  Yqb = Y * Yqb;
-  Zqb = Z * Zqb;
-  Sqb = S * Sqb;
-
-  QuBit qb0(Z0);
-
-  for (int i = 0; i < 10000; ++i)
   {
-    int gate = uni(rng);
-    apply_to(qb0, gate);
-    Dout(dc::notice, qb0);
+    using namespace gates;
+
+    qc[0] << H << CX(l1) << measure(0);
+    //             ^
+    //             |
+    qc[1] << H << co(l1) << measure(1);
   }
+
+  std::cout << qc.result() << std::endl;
 }
