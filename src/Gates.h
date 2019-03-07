@@ -1,23 +1,26 @@
 #pragma once
 
 #include "QMatrix.h"
+#include "utils/Vector.h"
 #include <cmath>
 
 namespace quantum {
-
 namespace gates {
 
-using gate_t = int;
+// Index into std::array gate.
+enum gate_t
+{
+  X = 0,
+  Y = 1,
+  Z = 2,
+  S = 3,
+  S_inv = 4,
+  T = 5,
+  T_inv = 6,
+  H = 7,
+};
 
-static constexpr gate_t X = 0;
-static constexpr gate_t Y = 1;
-static constexpr gate_t Z = 2;
-static constexpr gate_t S = 3;
-static constexpr gate_t S_inv = 4;
-static constexpr gate_t T = 5;
-static constexpr gate_t T_inv = 6;
-static constexpr gate_t H = 7;
-static constexpr gate_t number_of_gates = 8;
+static constexpr int number_of_gates = 8;
 
 extern std::array<QMatrix, number_of_gates> const gate;
 

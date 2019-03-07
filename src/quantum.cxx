@@ -9,7 +9,7 @@ int main()
   Debug(NAMESPACE_DEBUG::init());
 
   Circuit qc(2, 2);
-  Link l1;
+  Link l1(1);
 
   {
     using namespace gates;
@@ -20,5 +20,6 @@ int main()
     qc[1] << H << co(l1) << measure(1);
   }
 
+  qc.execute();
   std::cout << qc.result() << std::endl;
 }
