@@ -9,20 +9,20 @@ namespace quantum {
 using namespace gates;
 
 QState::QState(XState state) :
-  m_coef(state == X0 ? gate[H].column(0)        // H |+⟩ = |0⟩
-                     : gate[H].column(1))       // H |-⟩ = |1⟩
+  m_coef(state == X0 ? gate[H].col(0)           // H |0⟩ = |+⟩
+                     : gate[H].col(1))          // H |1⟩ = |-⟩
 {
 }
 
 QState::QState(YState state) :
-  m_coef(state == Y0 ? HS_inv.column(0)         // H S⁻¹ |↻⟩ = |0⟩
-                     : HS_inv.column(1))        // H S⁻¹ |↺⟩ = |1⟩
+  m_coef(state == Y0 ? SH.col(0)                // S H |0⟩ = |↻⟩
+                     : SH.col(1))               // S H |1⟩ = |↺⟩
 {
 }
 
 QState::QState(ZState state) :
-  m_coef(state == Z0 ? I.column(0)              // I |0⟩ = |0⟩
-                     : I.column(1))             // I |1⟩ = |1⟩
+  m_coef(state == Z0 ? I.col(0)                 // I |0⟩ = |0⟩
+                     : I.col(1))                // I |1⟩ = |1⟩
 {
 }
 
@@ -60,16 +60,6 @@ std::ostream& operator<<(std::ostream& os, QState const& state)
       os << ']';
   }
   return os;
-}
-
-QState operator*(QMatrix const& m, QState const& qstate)
-{
-  return QState{m * qstate.m_coef};
-}
-
-bool operator==(QState const& qstate1, QState const& qstate2)
-{
-  return qstate1.m_coef == qstate2.m_coef;
 }
 
 } // namespace quantum

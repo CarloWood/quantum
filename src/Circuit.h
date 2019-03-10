@@ -2,6 +2,7 @@
 
 #include "Gates.h"
 #include "QuBit.h"
+#include "utils/Vector.h"
 #include <iosfwd>
 #include <memory>
 

@@ -38,6 +38,9 @@ m4_include([cwm4/configure_ac_top.m4])
 # We use doxygen for documentation.
 #CW_DOXYGEN
 
+# Check for needed libraries.
+PKG_CHECK_MODULES([EIGEN], [eigen3 >= 3.3.4])
+
 ### Uncomment this to add more configuration output files.
 AC_CONFIG_FILES([src/Makefile])
 

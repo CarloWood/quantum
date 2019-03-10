@@ -17,6 +17,8 @@ class QuBitField
   mpq_rational rr_;     // Root Real: m.
   mpq_rational ri_;     // Root Imaginary: n.
 
+  QuBitField(double) {}
+
  public:
   QuBitField() : nr_(0), ni_(0), rr_(0), ri_(0) { }
   QuBitField(int nr) : nr_(nr), ni_(0), rr_(0), ri_(0) { }
@@ -89,3 +91,31 @@ struct exp<-1, 4> {
 } // namespace gates
 
 } // namespace quantum
+
+// Add support for libeigen3. See https://eigen.tuxfamily.org/dox/TopicCustomizing_CustomScalar.html
+#include <Eigen/Core>
+
+namespace Eigen {
+
+template<> struct NumTraits<quantum::QuBitField> : GenericNumTraits<quantum::QuBitField>
+{
+  typedef quantum::QuBitField Real;
+  typedef quantum::QuBitField NonInteger;
+  typedef quantum::QuBitField Nested;
+
+  static inline Real epsilon() { return 0; }
+  static inline Real dummy_precision() { return 0; }
+  static inline int digits10() { return 0; }
+
+  enum {
+    IsInteger = 0,
+    IsSigned = 1,
+    IsComplex = 0,
+    RequireInitialization = 1,
+    ReadCost = 24,
+    AddCost = 600,
+    MulCost = 400
+  };
+};
+
+} // namespace Eigen

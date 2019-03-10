@@ -1,11 +1,10 @@
 #pragma once
 
 #include "QState.h"
+#include "QMatrix.h"
 #include <iosfwd>
 
 namespace quantum {
-
-class QMatrix;
 
 class QuBit
 {

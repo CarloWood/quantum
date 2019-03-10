@@ -1,8 +1,7 @@
 #pragma once
 
 #include "QMatrix.h"
-#include "utils/Vector.h"
-#include <cmath>
+#include <array>
 
 namespace quantum {
 namespace gates {
@@ -24,7 +23,7 @@ static constexpr int number_of_gates = 8;
 
 extern std::array<QMatrix, number_of_gates> const gate;
 
-extern QMatrix const HS_inv;
+extern QMatrix const SH;
 extern QMatrix const I;
 
 } // namespace gates
