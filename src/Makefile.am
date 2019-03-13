@@ -2,7 +2,7 @@ AM_CPPFLAGS = -iquote $(top_srcdir) -iquote $(top_srcdir)/cwds
 
 bin_PROGRAMS = quantum rational_test
 
-quantum_SOURCES = quantum.cxx QuBit.cxx XState.cxx YState.cxx ZState.cxx QState.cxx QuBitField.cxx Gates.cxx Circuit.cxx
+quantum_SOURCES = quantum.cxx QuBit.cxx XState.cxx YState.cxx ZState.cxx QState.cxx QuBitField.cxx Gates.cxx Circuit.cxx State.cxx InputCollector.cxx
 quantum_CXXFLAGS = @LIBCWD_FLAGS@ @EIGEN_CFLAGS@
 quantum_LDADD = ../utils/libutils.la ../cwds/libcwds.la -lgmp @EIGEN_LIBS@
 
