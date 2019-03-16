@@ -14,10 +14,10 @@ int main()
   {
     using namespace gates;
 
-    qc[0] - H - S - CX(1)              - measure(0);
-    qc[1] - H - T - co(1)              - measure(1);
-    qc[2] - H - CX(2)                  - measure(2);
-    qc[3] - H - co(2)                  - measure(3);
+    qc[0] - H - S - CX(1) - CX(3) - S_inv - H;
+    qc[1] - H - T - co(1) - co(3) - T_inv - H;
+    qc[2] - H - CX(2) - H;
+    qc[3] - H - co(2) - H;
   }
 
   std::cout << "The circuit:\n";
