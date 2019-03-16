@@ -29,6 +29,8 @@ class GateInput
   virtual int number_of_inputs() const = 0;
   virtual int rowbit() const { assert(false); }
   virtual q_index_type next_chain(Circuit const* UNUSED_ARG(circuit), int UNUSED_ARG(rowbit)) const { assert(false); }
+  virtual QMatrix const& matrix() const = 0;
+  virtual QMatrixX const& matrixX() const { assert(false); }
   virtual void print_on(std::ostream& os) const = 0;
 };
 
@@ -36,6 +38,7 @@ template<int n>
 class MultiInput : public GateInput
 {
   int number_of_inputs() const override { return n; }
+  QMatrix const& matrix() const override { assert(false); }
 };
 
 using SingleInput = MultiInput<1>;
@@ -49,6 +52,7 @@ class ControlledNOT : public MultiInput<2>
  private:
   int number_of_inputs() const override { return 2; }
   q_index_type next_chain(Circuit const* circuit, int rowbit) const override;
+  QMatrixX const& matrixX() const override { return gates::Controlled_X; }
 
  public:
   ControlledNOT(int id) : m_id(id) { }
@@ -83,6 +87,7 @@ class Standard : public SingleInput
  private:
   gate_t m_gate;
 
+  QMatrix const& matrix() const override;
   void print_on(std::ostream& os) const override;
 
  public:
@@ -95,6 +100,7 @@ class measure : public SingleInput
  private:
   int m_classical_bit_index;
 
+  QMatrix const& matrix() const override;
   void print_on(std::ostream& os) const override;
 
  public:
@@ -124,6 +130,7 @@ class Circuit
     int number_of_inputs() const { return m_gate_input->number_of_inputs(); }
     q_index_type next_chain(Circuit const* circuit) const { return m_gate_input->next_chain(circuit, m_gate_input->rowbit()); }
     int rowbit() const { return m_gate_input->rowbit(); }
+    gates::GateInput const& gate_input() const { return *m_gate_input; }
 
     friend std::ostream& operator<<(std::ostream& os, Node const& node)
     {
@@ -186,7 +193,11 @@ class Circuit
  public:
   class Result
   {
+   private:
+    State const* m_state;
+
    public:
+    Result(State const* state) : m_state(state) { }
     friend std::ostream& operator<<(std::ostream& os, Result const& result);
   };
 
@@ -195,6 +206,8 @@ class Circuit
 
   QuBit& operator[](size_t quantum_bit_index);
 
+  q_index_type q_ibegin() const { return m_quantum_register.ibegin(); }
+  q_index_type q_iend() const { return m_quantum_register.iend(); }
   q_index_type next_chain(int id, int rowbit) const;
 
   void execute();

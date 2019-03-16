@@ -83,16 +83,21 @@ Circuit::QuBit& Circuit::operator[](size_t quantum_bit_index)
 
 Circuit::Result Circuit::result() const
 {
-  return {};
+  return {m_state};
 }
 
-std::ostream& operator<<(std::ostream& os, quantum::Circuit::Result const& UNUSED_ARG(result))
+std::ostream& operator<<(std::ostream& os, quantum::Circuit::Result const& result)
 {
-  // FIXME: use result
+  result.m_state->print_on(os);
   return os;
 }
 
 namespace gates {
+
+QMatrix const& Standard::matrix() const
+{
+  return gate[m_gate];
+}
 
 void Standard::print_on(std::ostream& os) const
 {
@@ -133,6 +138,12 @@ void CX::print_on(std::ostream& os) const
 void co::print_on(std::ostream& os) const
 {
   os << "co(" << m_id << ')';
+}
+
+QMatrix const& measure::matrix() const
+{
+  Dout(dc::warning, "Calling measure::matrix()");
+  return gates::I;
 }
 
 void measure::print_on(std::ostream& os) const

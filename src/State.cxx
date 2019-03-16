@@ -6,6 +6,8 @@ namespace quantum {
 
 State::State(Circuit const* circuit) : m_circuit(circuit)
 {
+  for (q_index_type q_index = circuit->q_ibegin(); q_index < circuit->q_iend(); ++q_index)
+    m_separable_states.emplace_back(q_index);
 }
 
 int State::apply(q_index_type& chain, Circuit::QuBit::iterator current_node)
@@ -38,16 +40,58 @@ int State::apply(q_index_type& chain, Circuit::QuBit::iterator current_node)
       return ret;
     }
     // Process multi-input.
-    Dout(dc::notice|flush_cf, "Applying " << *current_node << " to qubits " << collector << '.');
-    // FIXME: implement
+    apply(current_node, collector);
     Dout(dc::finish, "returning 0.");
     return 0;
   }
   // Process single input.
-  Dout(dc::notice, "Applying " << *current_node << " to qubit " << chain << '.');
-  // FIXME: implement
+  apply(current_node, chain);
   Dout(dc::finish, "returning 0.");
   return 0;
+}
+
+void State::apply(Circuit::QuBit::iterator node, q_index_type chain)
+{
+  Dout(dc::notice, "Applying " << *node << " to qubit " << chain << '.');
+  for (auto entangled_state = m_separable_states.begin(); entangled_state != m_separable_states.end(); ++entangled_state)
+    if (entangled_state->has(chain))
+    {
+      entangled_state->apply(node->gate_input().matrix(), chain);
+      break;
+    }
+}
+
+void State::apply(Circuit::QuBit::iterator node, InputCollector const& collector)
+{
+  Dout(dc::notice, "Applying " << *node << " to qubits " << collector << '.');
+  auto entangled_state = m_separable_states.begin();
+  while (!entangled_state->has(collector))
+    ++entangled_state;
+  auto const first_entangled_state = entangled_state;
+  Dout(dc::notice, "Found state " << *first_entangled_state);
+  auto new_end_entangled_state = m_separable_states.end();
+  while (++entangled_state != new_end_entangled_state)
+    if (entangled_state->has(collector))
+    {
+      Dout(dc::notice, "Merging state " << *entangled_state);
+      first_entangled_state->merge(*entangled_state);
+      Dout(dc::notice, "Merged state " << *first_entangled_state);
+      if (entangled_state == --new_end_entangled_state)
+        break;
+      std::swap(*entangled_state, *new_end_entangled_state);
+    }
+  first_entangled_state->apply(node->gate_input().matrixX(), collector);
+  m_separable_states.erase(new_end_entangled_state, m_separable_states.end());
+}
+
+void State::print_on(std::ostream& os) const
+{
+  char const* prefix = "";
+  for (auto entangled_state : m_separable_states)
+  {
+    os << prefix << entangled_state;
+    prefix = " \u2297 ";
+  }
 }
 
 } // namespace quantum

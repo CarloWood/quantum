@@ -69,6 +69,14 @@ QMatrix::Scalar H_init[4] =
     sin<1,4>::pi, sin<-1,4>::pi
   };
 
+QMatrixX::Scalar CX_init[16] =
+  {
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 0, 1,
+    0, 0, 1, 0
+  };
+
 } // namespace
 
 std::array<QMatrix, number_of_gates> const gate = {
@@ -89,6 +97,9 @@ QMatrix const SH = gate[S] * gate[H];
 
 // Identity matrix.
 QMatrix const I{I_init};
+
+// Controlled-NOT matrix.
+QMatrixX const Controlled_X = Eigen::Matrix<QuBitField, 4, 4>{CX_init};
 
 } // namespace gates
 
