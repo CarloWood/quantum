@@ -6,6 +6,7 @@
 #include "debug.h"
 #include <cstddef>
 #include <stack>
+#include <iosfwd>
 
 #if defined(CWDEBUG) && !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
@@ -39,8 +40,12 @@ class State
   // which is just a wrapper around a pointer to a gate input.
   int apply(q_index_type& chain, Circuit::QuBit::iterator current_node);
 
+  // Compare if two states are equal.
+  friend bool operator==(State const& lhs, State const& rhs);
+
   // Print the product of the m_separable_states.
   void print_on(std::ostream& os) const;
+  friend std::ostream& operator<<(std::ostream& os, State const& state) { state.print_on(os); return os; }
 };
 
 } // namespace quantum

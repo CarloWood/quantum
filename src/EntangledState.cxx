@@ -210,33 +210,50 @@ void EntangledState::merge(EntangledState const& entangled_state)
   m_q_index_mask |= entangled_state.m_q_index_mask;
 }
 
-std::ostream& operator<<(std::ostream& os, EntangledState const& entangle_state)
+void EntangledState::print_on(std::ostream& os, bool need_parens) const
 {
-  unsigned long const number_of_states = 1 << entangle_state.m_number_of_quantum_bits;
-  if (number_of_states == 1)
-    return os << 'I';
-  char const* prefix = "";
-  for (unsigned long state = 0; state < number_of_states; ++state)
+  unsigned long const number_of_product_states = 1 << m_number_of_quantum_bits;
+  if (number_of_product_states == 1)
   {
-    if (entangle_state.m_coef[state] == 0)
+    os << 'I';
+    return;
+  }
+  char const* prefix = "";
+  bool multiple_product_states = need_parens;
+  if (need_parens)
+  {
+    int cnt = 0;
+    for (unsigned long state = 0; state < number_of_product_states; ++state)
+      if (m_coef[state] != 0)
+        if (cnt++ > 1)
+          break;
+    if (cnt == 1)
+      multiple_product_states = false;
+  }
+  if (need_parens && multiple_product_states)
+    os << '(';
+  for (unsigned long state = 0; state < number_of_product_states; ++state)
+  {
+    if (m_coef[state] == 0)
       continue;
     os << prefix;
     prefix = " + ";
-    if (entangle_state.m_coef[state] == -1)
+    if (m_coef[state] == -1)
       os << '-';
-    else if (entangle_state.m_coef[state] != 1)
-      os << entangle_state.m_coef[state];
-    os << '|';
-    for (int i = entangle_state.m_number_of_quantum_bits - 1; i >= 0; --i)
+    else if (m_coef[state] != 1)
+      os << m_coef[state].to_string(need_parens);
+    os << "·|";
+    for (int i = m_number_of_quantum_bits - 1; i >= 0; --i)
     {
       int mask = 1 << i;
       os << ((state & mask) ? '1' : '0');
-      print_subscript_on(os, entangle_state.m_q_index[i].get_value());
+      print_subscript_on(os, m_q_index[i].get_value());
     }
     os << "⟩";
     prefix = " + ";
   }
-  return os;
+  if (need_parens && multiple_product_states)
+    os << ')';
 }
 
 void swap(EntangledState& lhs, EntangledState& rhs)
@@ -245,6 +262,19 @@ void swap(EntangledState& lhs, EntangledState& rhs)
   std::swap(lhs.m_q_index_mask, rhs.m_q_index_mask);
   std::swap(lhs.m_coef, rhs.m_coef);
   std::swap(lhs.m_q_index, rhs.m_q_index);
+}
+
+bool operator!=(EntangledState const& lhs, EntangledState const& rhs)
+{
+  // This shouldn't be called when the number of quantum bits differ;
+  // that is dangerous as it might still be equal after merging the
+  // EntangledState with another first.
+  assert(lhs.m_number_of_quantum_bits == rhs.m_number_of_quantum_bits);
+  // Same thing.
+  assert(lhs.m_q_index_mask == rhs.m_q_index_mask);
+  // Sorry, not implemented yet.
+  assert(lhs.m_q_index == rhs.m_q_index);
+  return lhs.m_coef != rhs.m_coef;
 }
 
 } // namespace quantum

@@ -1,6 +1,8 @@
 #include "sys.h"
 #include "State.h"
 #include "debug.h"
+#include <algorithm>
+#include <numeric>
 
 namespace quantum {
 
@@ -52,7 +54,7 @@ int State::apply(q_index_type& chain, Circuit::QuBit::iterator current_node)
 
 void State::apply(Circuit::QuBit::iterator node, q_index_type chain)
 {
-  Dout(dc::notice, "Applying " << *node << " to qubit " << chain << '.');
+  DoutEntering(dc::notice, "State::apply(" << *node << ", " << chain << ')');
   for (auto entangled_state = m_separable_states.begin(); entangled_state != m_separable_states.end(); ++entangled_state)
     if (entangled_state->has(chain))
     {
@@ -63,7 +65,7 @@ void State::apply(Circuit::QuBit::iterator node, q_index_type chain)
 
 void State::apply(Circuit::QuBit::iterator node, InputCollector const& collector)
 {
-  Dout(dc::notice, "Applying " << *node << " to qubits " << collector << '.');
+  DoutEntering(dc::notice, "State::apply(" << *node << ", " << collector << ')');
   auto entangled_state = m_separable_states.begin();
   while (!entangled_state->has(collector))
     ++entangled_state;
@@ -86,11 +88,62 @@ void State::apply(Circuit::QuBit::iterator node, InputCollector const& collector
 
 void State::print_on(std::ostream& os) const
 {
+  bool const need_parens = m_separable_states.size() > 1;
   char const* prefix = "";
   for (auto entangled_state : m_separable_states)
   {
-    os << prefix << entangled_state;
+    os << prefix;
+    entangled_state.print_on(os, need_parens);
     prefix = " \u2297 ";
+  }
+}
+
+// Only use for debugging purposes; this isn't *always* exact.
+bool operator==(State const& lhs, State const& rhs)
+{
+  size_t lhs_size = lhs.m_separable_states.size();
+  std::vector<int> lhs_i(lhs_size);
+  std::iota(lhs_i.begin(), lhs_i.end(), 0);
+  std::sort(lhs_i.begin(), lhs_i.end(), [&](int a, int b){ return lhs.m_separable_states[a].q_index_mask() < lhs.m_separable_states[b].q_index_mask(); });
+  size_t rhs_size = rhs.m_separable_states.size();
+  std::vector<int> rhs_i(rhs_size);
+  std::iota(rhs_i.begin(), rhs_i.end(), 0);
+  std::sort(rhs_i.begin(), rhs_i.end(), [&](int a, int b){ return rhs.m_separable_states[a].q_index_mask() < rhs.m_separable_states[b].q_index_mask(); });
+  std::vector<int>::iterator lhs_ii = lhs_i.begin();
+  std::vector<int>::iterator rhs_ii = rhs_i.begin();
+  for (;;)
+  {
+    unsigned long lhs_mask = lhs.m_separable_states[*lhs_ii].q_index_mask();
+    unsigned long rhs_mask = rhs.m_separable_states[*rhs_ii].q_index_mask();
+    if ((lhs_mask & rhs_mask) != std::min(lhs_mask, rhs_mask))
+      return false;     // Different entangled states. Strictly this could mean that both sides holds an EntangledState that is actually separable,
+                        // ie, XY and YZ; where the correct (most separated) list should be X, Y, Z, but to detect that I'd have to always calculate
+                        // the full state (merge all EntangledState's) and I don't want to do that (or worse, be able to find those separations).
+    if (lhs_mask == rhs_mask)
+    {
+      if (lhs.m_separable_states[*lhs_ii] != rhs.m_separable_states[*rhs_ii])
+        return false;
+    }
+    else
+    {
+      unsigned long larger_mask = lhs_mask | rhs_mask;
+      State const& smaller_hsp{(lhs_mask < rhs_mask) ? lhs : rhs};
+      State const& larger_hsp{(lhs_mask > rhs_mask) ? lhs : rhs};
+      std::vector<int>::iterator& smaller_hs_ii{(lhs_mask < rhs_mask) ? lhs_ii : rhs_ii};
+      std::vector<int>::iterator& larger_hs_ii{(lhs_mask > rhs_mask) ? lhs_ii : rhs_ii};
+      std::vector<int>::iterator const& smaller_ii_end{(lhs_mask < rhs_mask) ? lhs_i.end() : rhs_i.end()};
+      EntangledState smaller_es_cpy{smaller_hsp.m_separable_states[*smaller_hs_ii]};
+      while (smaller_hs_ii != smaller_ii_end && smaller_es_cpy.q_index_mask() < larger_mask)
+        smaller_es_cpy.merge(smaller_hsp.m_separable_states[*++smaller_hs_ii]);
+      if (smaller_hs_ii == smaller_ii_end || smaller_es_cpy.q_index_mask() != larger_mask)
+        return false;
+      if (larger_hsp.m_separable_states[*larger_hs_ii] != smaller_es_cpy)
+        return false;
+    }
+    ++lhs_ii;
+    ++rhs_ii;
+    if (lhs_ii == lhs_i.end() || rhs_ii == rhs_i.end())
+      return lhs_ii == lhs_i.end() && rhs_ii == rhs_i.end();
   }
 }
 

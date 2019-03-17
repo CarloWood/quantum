@@ -56,29 +56,34 @@ void Circuit::saw(gates::ControlledNOT const& input, q_index_type quantum_regist
   {
     std::stringstream ss;
     input.print_on(ss);
-    DoutFatal(dc::core, "Duplicate " << ss.str() << "(" << input.id() << ")");
+    DoutFatal(dc::core, "Duplicate " << ss.str());
   }
 #endif
   // Only use each id once.
   assert(res.second);
 }
 
-Circuit::Circuit(size_t number_of_quantum_bits, size_t number_of_classical_bits) : m_state(nullptr)
+void Circuit::reset(size_t number_of_quantum_bits, size_t number_of_classical_bits)
 {
+  m_quantum_register.clear();
   for (size_t index = 0; index < number_of_quantum_bits; ++index)
     m_quantum_register.emplace_back(this, q_index_type{index});
+  m_classical_register.clear();
   for (size_t index = 0; index < number_of_classical_bits; ++index)
     m_classical_register.emplace_back(this, c_index_type{index});
-}
-
-Circuit::~Circuit()
-{
-  delete m_state;
+  m_state.reset();
+  for (auto&& m : m_map)
+    m.clear();
 }
 
 Circuit::QuBit& Circuit::operator[](size_t quantum_bit_index)
 {
   return m_quantum_register[q_index_type{quantum_bit_index}];
+}
+
+std::shared_ptr<State> Circuit::state() const
+{
+  return m_state;
 }
 
 Circuit::Result Circuit::result() const
@@ -203,7 +208,7 @@ void Circuit::execute()
   //size_t const number_of_classical_bits = m_classical_register.size();
 
   // Create the circuit matrix.
-  m_state = new State(this);
+  m_state = std::make_shared<State>(this);
 
   // Initialize all qubit pointers.
   utils::Vector<QuBit::iterator, q_index_type> node;

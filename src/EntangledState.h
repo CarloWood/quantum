@@ -34,7 +34,14 @@ class EntangledState
   bool has(InputCollector const& collector) const { return (m_q_index_mask & collector.q_index_mask()) != 0; }
   void apply(QMatrixX const& matrix, InputCollector const& inputs);
 
-  friend std::ostream& operator<<(std::ostream& os, EntangledState const& entangle_state);
+  void print_on(std::ostream& os, bool need_parens = false) const;
+
+  // Accessor for m_q_index_mask.
+  unsigned long q_index_mask() const { return m_q_index_mask; }
+
+  friend bool operator!=(EntangledState const& rhs, EntangledState const& lhs);
+
+  friend std::ostream& operator<<(std::ostream& os, EntangledState const& entangled_state) { entangled_state.print_on(os); return os; }
   friend void swap(EntangledState& lhs, EntangledState& rhs);
 };
 

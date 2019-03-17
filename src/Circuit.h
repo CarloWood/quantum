@@ -184,7 +184,7 @@ class Circuit
 
   quantum_register_type m_quantum_register;
   classical_register_type m_classical_register;
-  State* m_state;
+  std::shared_ptr<State> m_state;
   std::array<map_type, 2> m_map;
 
  private:
@@ -194,15 +194,15 @@ class Circuit
   class Result
   {
    private:
-    State const* m_state;
+    std::shared_ptr<State const> m_state;
 
    public:
-    Result(State const* state) : m_state(state) { }
+    Result(std::shared_ptr<State const> state) : m_state(state) { }
     friend std::ostream& operator<<(std::ostream& os, Result const& result);
   };
 
-  Circuit(size_t number_of_quantum_bits, size_t number_of_classical_bits);
-  ~Circuit();
+  Circuit(size_t number_of_quantum_bits, size_t number_of_classical_bits) { reset(number_of_quantum_bits, number_of_classical_bits); }
+  void reset(size_t number_of_quantum_bits, size_t number_of_classical_bits);
 
   QuBit& operator[](size_t quantum_bit_index);
 
@@ -211,6 +211,7 @@ class Circuit
   q_index_type next_chain(int id, int rowbit) const;
 
   void execute();
+  std::shared_ptr<State> state() const;
   Result result() const;
 
   friend std::ostream& operator<<(std::ostream& os, Circuit const& circuit);
