@@ -22,7 +22,7 @@ class EntangledState
  public:
   // Default constructor.
   EntangledState() : m_number_of_quantum_bits(0) { }
-  // Construct an EntangledState for a single qubit in the |0> state (so yeah, it isn't entangled).
+  // Construct an EntangledState for a single qubit in the |0⟩ state (so yeah, it isn't entangled).
   EntangledState(q_index_type quantum_register_index) :
     m_number_of_quantum_bits(1), m_coef{1, 0}, m_q_index{quantum_register_index}, m_q_index_mask(1UL << quantum_register_index.get_value()) { }
 

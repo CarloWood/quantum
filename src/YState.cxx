@@ -6,8 +6,8 @@ namespace quantum {
 std::string to_string(YState state)
 {
   if (state == Y0)
-    return "|↻⟩";
-  return "|↺⟩";
+    return "|\u21bb\u27e9"; // "|↻⟩"
+  return "|\u21ba\u27e9";   // "|↺⟩"
 }
 
 std::ostream& operator<<(std::ostream& os, YState state)

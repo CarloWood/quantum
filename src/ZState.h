@@ -5,10 +5,10 @@
 
 namespace quantum {
 
-// Computational basis, { |0>, |1> }.
+// Computational basis, { |0⟩, |1⟩ }.
 enum ZState {
-  Z0,   // |0>
-  Z1    // |1>
+  Z0,   // |0⟩
+  Z1    // |1⟩
 };
 
 std::string to_string(ZState state);

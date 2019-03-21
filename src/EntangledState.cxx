@@ -70,14 +70,14 @@ void EntangledState::apply(QMatrixX const& matrix, InputCollector const& inputs)
   //      .--|--------> q[n3]-- . . . --------+-----------------
   //      vv v            .
   //      43210 <-- rowbit
-  //     |00000>
-  //     |00001>  Also consider an EntangledState of five qubits, 2^5 = 32 product states,
-  //     |00010>  where (row)bits 4, 3 and 1 correspond respectively to chain n3, n1 and n2.
-  //     |00011>  Lets call those three (row)bits the "used" bits.
+  //     |00000⟩
+  //     |00001⟩  Also consider an EntangledState of five qubits, 2^5 = 32 product states,
+  //     |00010⟩  where (row)bits 4, 3 and 1 correspond respectively to chain n3, n1 and n2.
+  //     |00011⟩  Lets call those three (row)bits the "used" bits.
   //        .     The other two (row)bits correspond to other qubit/chains that are not used
   //        .     as intput for the gate and will be called the "unused" bits.
   //        .
-  //     |11111>  Having five rowbits, the EntangledState contains the coefficients of
+  //     |11111⟩  Having five rowbits, the EntangledState contains the coefficients of
   //              number_of_entangled_product_states = 2^5 = 32 product states.
   //
   // All coefficients must be changed as follows:
@@ -96,14 +96,14 @@ void EntangledState::apply(QMatrixX const& matrix, InputCollector const& inputs)
   //
   //          unused bits: 0 0      0 1      1 0      1 1
   // row (in binary):      v v      v v      v v      v v
-  //            000   | |00000>  |00001>  |00100>  |00101> |
-  //            001   | |00010>  |00011>  |00110>  |00111> |
-  //            010   | |10000>  |10001>  |10100>  |10101> |
-  //            011   | |10010>  |10011>  |10110>  |10111> |
-  //            100   | |01000>  |01001>  |01100>  |01101> |
-  //            101   | |01010>  |01011>  |01110>  |01111> |
-  //            110   | |11000>  |11001>  |11100>  |11101> |
-  //            111   | |11010>  |11011>  |11110>  |11111> |
+  //            000   | |00000⟩  |00001⟩  |00100⟩  |00101⟩ |
+  //            001   | |00010⟩  |00011⟩  |00110⟩  |00111⟩ |
+  //            010   | |10000⟩  |10001⟩  |10100⟩  |10101⟩ |
+  //            011   | |10010⟩  |10011⟩  |10110⟩  |10111⟩ |
+  //            100   | |01000⟩  |01001⟩  |01100⟩  |01101⟩ |
+  //            101   | |01010⟩  |01011⟩  |01110⟩  |01111⟩ |
+  //            110   | |11000⟩  |11001⟩  |11100⟩  |11101⟩ |
+  //            111   | |11010⟩  |11011⟩  |11110⟩  |11111⟩ |
   //            ^^^      ^^ ^     ^^ ^     ^^ ^     ^^ ^
   //            210      12 0     12 0     12 0     12 0
 
@@ -193,7 +193,7 @@ void print_subscript_on(std::ostream& os, int val)
     print_subscript_on(os, val / 10);
     val %= 10;
   }
-  static std::array<char const*, 10> substript = { "₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉" };
+  static std::array<char const*, 10> substript = { "\u2080", "\u2081", "\u2082", "\u2083", "\u2084", "\u2085", "\u2086", "\u2087", "\u2088", "\u2089" };
   os << substript[val];
 }
 
@@ -243,14 +243,14 @@ void EntangledState::print_on(std::ostream& os, bool need_parens) const
       os << '-';
     else if (m_coef[state] != 1)
       os << m_coef[state].to_string(need_parens);
-    os << "·|";
+    os << "\u00b7|"; // "·|"
     for (int i = m_number_of_quantum_bits - 1; i >= 0; --i)
     {
       int mask = 1 << i;
       os << ((state & mask) ? '1' : '0');
       print_subscript_on(os, m_q_index[i].get_value());
     }
-    os << "⟩";
+    os << "\u27e9"; // "⟩"
     prefix = " + ";
   }
   if (need_parens && multiple_product_states)

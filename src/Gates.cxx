@@ -71,35 +71,35 @@ QMatrix::Scalar H_init[4] =
 
 // Although normally a CNOT gate is drawn like this:
 //
-// |a> ----o---- |a>
+// |a⟩ ----o---- |a⟩
 //         |
-// |b> ---(+)--- |a XOR b>
+// |b⟩ ---(+)--- |a XOR b⟩
 //
 // see for example https://en.wikipedia.org/wiki/Controlled_NOT_gate#Operation,
-// that image at the same time corresponds with an input state |a>⊗|b> = |ab>,
-//                                                              ^_________^_____ control input.
+// that image at the same time corresponds with an input state |a⟩ ⊗ |b⟩ = |ab⟩,
+//                                                              ^___________^_____ control input.
 // this program started with adopting what is being used by IBM on their site
 // https://quantumexperience.ng.bluemix.net/qx/tutorial?sectionId=beginners-guide&page=006-Multi-Qubit_Gates~2F001-Multi-Qubit_Gates
 // which show the following image:
 //
-// |00> --> |00>
-// |10> --> |10>
-// |01> --> |11>
-// |11> --> |01>
+// |00⟩ --> |00⟩
+// |10⟩ --> |10⟩
+// |01⟩ --> |11⟩
+// |11⟩ --> |01⟩
 //   ^        ^
 //   |        |
 //  control input.
 //
 // However, next IBM continuous with showing how to implement this
-// with their composer. For example the |10> --> |10> corresponds to
+// with their composer. For example the |10⟩ --> |10⟩ corresponds to
 // the circuit:                          ^
 //                                       |
 // qubit#                                |
 //   |                                   |
 //   v                                   |
-// q[0] :  |0> ------o---- |0>           |
+// q[0] :  |0⟩ ------o---- |0⟩           |
 //                   |                   |
-// q[1] :  |0> --X--(+)--- |1>      <----+
+// q[1] :  |0⟩ --X--(+)--- |1⟩      <----+
 //                                       |
 // in other words, they put the more significant bit at the bottom!?
 // Surely this has been motivated by the desire to start counting
@@ -111,9 +111,9 @@ QMatrix::Scalar H_init[4] =
 // is a reversed CNOT. The CORRECT DRAWING - taking into account
 // how they show things in the composer (aka, "upside down") is:
 //
-// q[0] :  |0> --X--(+)--- |1>     }
-//                   |             } -- in IBM notation, this is |01>.
-// q[1] :  |0> ------o---- |0>     }                              ^
+// q[0] :  |0⟩ --X--(+)--- |1⟩     }
+//                   |             } -- in IBM notation, this is |01⟩.
+// q[1] :  |0⟩ ------o---- |0⟩     }                              ^
 //                                                                |_____________ control input.
 // where the control input is now in the correct place (the left
 // most qubit in the ket notation).
@@ -122,10 +122,10 @@ QMatrix::Scalar H_init[4] =
 // As that is the table for the inverted CNOT. The table for
 // the normal CNOT is (again, see https://en.wikipedia.org/wiki/Controlled_NOT_gate#Operation):
 //
-// |00> --> |00>
-// |01> --> |01>
-// |10> --> |11>
-// |11> --> |10>
+// |00⟩ --> |00⟩
+// |01⟩ --> |01⟩
+// |10⟩ --> |11⟩
+// |11⟩ --> |10⟩
 //  ^        ^
 //  |        |
 // control input.

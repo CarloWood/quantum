@@ -98,7 +98,7 @@ void State::print_on(std::ostream& os) const
   {
     os << prefix;
     entangled_state.print_on(os, need_parens);
-    prefix = " \u2297 ";
+    prefix = " \u2297 ";        // " ⊗ "
   }
 }
 

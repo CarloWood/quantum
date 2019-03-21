@@ -64,7 +64,7 @@ class co : public ControlledNOT
 {
  private:
   // The control bit usually corresponds with first qubit,
-  // as in |1> ⊗ |0> = |10>.
+  // as in |1⟩ ⊗ |0⟩ = |10⟩.
   //        ^           ^
   //        |           |
   //     control        |

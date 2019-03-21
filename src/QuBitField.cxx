@@ -45,7 +45,7 @@ std::string complex_to_string(mpq_rational r, mpq_rational i, bool need_parens)
     else if (ip == -1)
       result << "-i";
     else
-      result << ip << "·i";
+      result << ip << "\u00b7i"; // "·i"
     if (need_parens && have_real_part)
       result << ')';
   }
@@ -85,13 +85,13 @@ std::string QuBitField::to_string(bool need_parens) const
     mpq_rational rrp = root_part_subtract ? -rr_ : rr_;
     mpq_rational rip = root_part_subtract ? -ri_ : ri_;
     if (rrp == 1 && rip == 0)
-      result += "√½";
+      result += "\u221a\u00bd"; // "√½"
     else if (rrp == -1 && rip == 0)
-      result += "-√½";
+      result += "-\u221a\u00bd"; // "-√½"
     else
     {
       result += complex_to_string(rrp, rip, true);
-      result += "·√½";
+      result += "\u00b7\u221a\u00bd"; // "·√½"
     }
   }
   if (need_parens)

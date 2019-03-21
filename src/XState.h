@@ -5,10 +5,10 @@
 
 namespace quantum {
 
-// Superposition basis, { |+⟩, |-⟩ }.
+// Superposition basis, { |+⟩, |−⟩ }.
 enum XState {
   X0,   // |+⟩
-  X1    // |-⟩
+  X1    // |−⟩
 };
 
 std::string to_string(XState state);
