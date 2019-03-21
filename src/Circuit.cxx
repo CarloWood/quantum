@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "Circuit.h"
 #include "State.h"
+#include "utils/reversed.h"
 #include <iostream>
 #include <vector>
 
@@ -167,7 +168,7 @@ void Circuit::QuBit::print_on(std::ostream& os) const
 
 std::ostream& operator<<(std::ostream& os, Circuit const& circuit)
 {
-  for (auto&& qubit : circuit.m_quantum_register)
+  for (auto&& qubit : adaptor::reversed(circuit.m_quantum_register))
     os << qubit << std::endl;
   return os;
 }

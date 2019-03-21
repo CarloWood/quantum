@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "State.h"
 #include "debug.h"
+#include "utils/reversed.h"
 #include <algorithm>
 #include <numeric>
 
@@ -49,6 +50,7 @@ int State::apply(q_index_type& chain, Circuit::QuBit::iterator current_node)
   // Process single input.
   apply(current_node, chain);
   Dout(dc::finish, "returning 0.");
+  Dout(dc::notice, "State now: " << *this);
   return 0;
 }
 
@@ -61,6 +63,7 @@ void State::apply(Circuit::QuBit::iterator node, q_index_type chain)
       entangled_state->apply(node->gate_input().matrix(), chain);
       break;
     }
+  Dout(dc::notice, "State now: " << *this);
 }
 
 void State::apply(Circuit::QuBit::iterator node, InputCollector const& collector)
@@ -84,13 +87,14 @@ void State::apply(Circuit::QuBit::iterator node, InputCollector const& collector
     }
   first_entangled_state->apply(node->gate_input().matrixX(), collector);
   m_separable_states.erase(new_end_entangled_state, m_separable_states.end());
+  Dout(dc::notice, "State now: " << *this);
 }
 
 void State::print_on(std::ostream& os) const
 {
   bool const need_parens = m_separable_states.size() > 1;
   char const* prefix = "";
-  for (auto entangled_state : m_separable_states)
+  for (auto entangled_state : adaptor::reversed(m_separable_states))
   {
     os << prefix;
     entangled_state.print_on(os, need_parens);

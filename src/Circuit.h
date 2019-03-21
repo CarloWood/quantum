@@ -63,7 +63,29 @@ class ControlledNOT : public MultiInput<2>
 class co : public ControlledNOT
 {
  private:
-  int rowbit() const override { return 0; }
+  // The control bit usually corresponds with first qubit,
+  // as in |1> ⊗ |0> = |10>.
+  //        ^           ^
+  //        |           |
+  //     control        |
+  //       bit           \.
+  //                      \.
+  // And hence, with the more significant bit of the two.
+  //
+  // This way the required matrix representation can stay
+  // the same as what everyone uses, see for example
+  // https://en.wikipedia.org/wiki/Controlled_NOT_gate#Operation
+  //
+  // Note however that since we print the lowest qubit indices
+  // first, this then corresponds with:
+  //
+  // ----(+)-----
+  //      |
+  // -----o------
+  //
+  // instead of the image that is usually associated with
+  // a CNOT gate (with the control input at the top).
+  int rowbit() const override { return 1; }
   void print_on(std::ostream& os) const override;
 
  public:
@@ -74,7 +96,8 @@ class co : public ControlledNOT
 class CX : public ControlledNOT
 {
  private:
-  int rowbit() const override { return 1; }
+  // The output bit is usually drawn on the bottom, which in our case corresponds with a higher qubit index.
+  int rowbit() const override { return 0; }
   void print_on(std::ostream& os) const override;
 
  public:

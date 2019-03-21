@@ -35,6 +35,7 @@ void EntangledState::apply(QMatrix const& matrix, q_index_type chain)
     m_coef[i0] = v2[0];
     m_coef[i1] = v2[1];
   }
+  Dout(dc::notice, "Result: " << *this);
 }
 
 void EntangledState::apply(QMatrixX const& matrix, InputCollector const& inputs)
