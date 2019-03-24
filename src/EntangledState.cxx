@@ -22,7 +22,7 @@ int EntangledState::rowbit(q_index_type q_index) const
 void EntangledState::apply(QMatrix const& matrix, q_index_type chain)
 {
   Eigen::IOFormat MatLabFmt(Eigen::FullPrecision, 0, " ", ";", "", "", "[", "]");
-  DoutEntering(dc::notice, "EntangledState::apply(" << matrix.format(MatLabFmt) << ", " << chain << ")");
+//  DoutEntering(dc::notice, "EntangledState::apply(" << matrix.format(MatLabFmt) << ", " << chain << ")");
   unsigned long rowbit_mask = 1UL << rowbit(chain);
   unsigned long coefficients = 1UL << m_number_of_quantum_bits;
   for (unsigned long i0 = 0; i0 < coefficients; ++i0)
@@ -41,7 +41,7 @@ void EntangledState::apply(QMatrix const& matrix, q_index_type chain)
 void EntangledState::apply(QMatrixX const& matrix, InputCollector const& inputs)
 {
   Eigen::IOFormat MatLabFmt(Eigen::FullPrecision, 0, " ", ";", "", "", "[", "]");
-  DoutEntering(dc::notice, "EntangledState::apply(" << matrix.format(MatLabFmt) << ", " << inputs << ")");
+//  DoutEntering(dc::notice, "EntangledState::apply(" << matrix.format(MatLabFmt) << ", " << inputs << ")");
 
   unsigned long const number_of_matrix_product_states = matrix.cols();  // The number of product states that the matrix works on;
   assert(utils::is_power_of_two(number_of_matrix_product_states));      // the matrix works on log2(number_of_matrix_product_states) qubits.
@@ -213,6 +213,7 @@ void EntangledState::merge(EntangledState const& entangled_state)
 
 void EntangledState::print_on(std::ostream& os, bool need_parens) const
 {
+#if 0
   unsigned long const number_of_product_states = 1 << m_number_of_quantum_bits;
   if (number_of_product_states == 1)
   {
@@ -242,7 +243,16 @@ void EntangledState::print_on(std::ostream& os, bool need_parens) const
     if (m_coef[state] == -1)
       os << '-';
     else if (m_coef[state] != 1)
-      os << m_coef[state].to_string(need_parens);
+    {
+      bool has_multiple_terms;
+      std::stringstream ss;
+      FormulaPrinter<QuBitField>(m_coef[state]).print_on(ss, has_multiple_terms);
+      if (has_multiple_terms)
+        os << '(';
+      os << ss.str();
+      if (has_multiple_terms)
+        os << ')';
+    }
     os << "\u00b7|"; // "·|"
     for (int i = m_number_of_quantum_bits - 1; i >= 0; --i)
     {
@@ -255,6 +265,8 @@ void EntangledState::print_on(std::ostream& os, bool need_parens) const
   }
   if (need_parens && multiple_product_states)
     os << ')';
+#endif
+  os << "FIXME";
 }
 
 void swap(EntangledState& lhs, EntangledState& rhs)

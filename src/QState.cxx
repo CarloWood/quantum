@@ -47,9 +47,9 @@ std::ostream& operator<<(std::ostream& os, QState const& state)
       print_brackets = false;
     if (print_brackets)
       os << " [";
-    os << state.m_coef[0].to_string(true) << " |0\u27e9 "; // " |0⟩ "
+    os << state.m_coef[0] << " |0\u27e9 "; // " |0⟩ "
     std::stringstream ss;
-    ss << state.m_coef[1].to_string(true);
+    ss << state.m_coef[1];
     std::string s = ss.str();
     if (s[0] == '-')
       os << "- " << s.substr(1);

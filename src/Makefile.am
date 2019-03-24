@@ -10,9 +10,9 @@ rational_test_SOURCES = rational_test.cxx QuBitField.cxx
 rational_test_CXXFLAGS = @LIBCWD_FLAGS@ @EIGEN_CFLAGS@
 rational_test_LDADD = ../utils/libutils.la ../cwds/libcwds.la -lgmp @EIGEN_LIBS@
 
-formula_test_SOURCES = formula_test.cxx
-formula_test_CXXFLAGS = @LIBCWD_FLAGS@
-formula_test_LDADD = ../utils/libutils.la ../cwds/libcwds.la
+formula_test_SOURCES = formula_test.cxx formula_test_expected.cxx QuBitField.cxx
+formula_test_CXXFLAGS = @LIBCWD_FLAGS@ @EIGEN_CFLAGS@
+formula_test_LDADD = ../utils/libutils.la ../cwds/libcwds.la -lgmp @EIGEN_LIBS@
 
 # --------------- Maintainer's Section
 

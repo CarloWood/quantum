@@ -1,15 +1,42 @@
 #pragma once
 
+#include "formula.h"
 #include <boost/multiprecision/gmp.hpp>
 #include <string>
-#include <iosfwd>
 
+// Forward declarations.
 namespace quantum {
 
 using namespace boost::multiprecision;
 
+// Just a helper class for printing QuBitField.
+struct RationalsComplex
+{
+  mpq_rational m_real;
+  mpq_rational m_imag;
+
+  RationalsComplex(mpq_rational real, mpq_rational imag) : m_real(real), m_imag(imag) { }
+
+  bool is_unity() const { return m_imag == 0 && (m_real == 1 || m_real == -1); }
+  bool is_negative() const { return m_real < 0 || (m_real == 0 && m_imag < 0); }
+};
+
+class QuBitField;
+
+} // namespace quantum
+
+// Specializations.
+
+template<>
+void print_formula_on(quantum::RationalsComplex const& number, std::ostream& os, bool& negate_first_term, bool print_negate_sign, bool is_factor);
+
+template<>
+void print_formula_on(quantum::QuBitField const& number, std::ostream& os, bool& negate_first_term, bool print_negate_sign, bool is_factor);
+
+namespace quantum {
+
 // This class represents the numbers ℚ[i, 1/√2] = { (k + l·i) + (m + n·i)·√½ | k,l,m,n ∈ ℚ }
-class QuBitField
+class QuBitField : public Sum
 {
  private:
   mpq_rational nr_;     // Non-root Real: k.
@@ -31,14 +58,30 @@ class QuBitField
   QuBitField& operator*=(QuBitField const& v) { QuBitField self(*this); *this = self * v; return *this; }
   QuBitField operator-() const { return QuBitField(-nr_, -ni_, -rr_, -ri_); }
 
-  std::string to_string(bool need_parens = false) const;
+//  std::string to_string(bool need_parens = false) const;
 
   friend QuBitField operator+(QuBitField const& v1, QuBitField const& v2) { QuBitField result(v1); result += v2; return result; }
   friend QuBitField operator-(QuBitField const& v1, QuBitField const& v2) { QuBitField result(v1); result -= v2; return result; }
   friend QuBitField operator*(QuBitField const& v1, QuBitField const& v2);
   friend bool operator==(QuBitField const& v1, QuBitField const& v2) { return v1.nr_ == v2.nr_ && v1.ni_ == v2.ni_ && v1.rr_ == v2.rr_ && v1.ri_ == v2.ri_; }
   friend bool operator!=(QuBitField const& v1, QuBitField const& v2) { return v1.nr_ != v2.nr_ || v1.ni_ != v2.ni_ || v1.rr_ != v2.rr_ || v1.ri_ != v2.ri_; }
-  friend std::ostream& operator<<(std::ostream& os, QuBitField const& qubit_field);
+  friend std::ostream& operator<<(std::ostream& os, QuBitField const& number);
+
+  // Friend declaration of specialization.
+  friend void print_formula_on<>(quantum::QuBitField const& number, std::ostream& os, bool& negate_first_term, bool print_negate_sign, bool is_factor);
+
+ public:
+  bool is_negative() const { return nr_ < 0 || (nr_ == 0 && (ni_ < 0 || (ni_ == 0 && (rr_ < 0 || (rr_ == 0 && ri_ < 0))))); }
+  bool has_multiple_terms() const override { return (nr_ != 0 ? 1 : 0) + (ni_ != 0 ? 1 : 0) + (rr_ != 0 || ri_ != 0 ? 1 : 0) > 1; }
+  bool is_zero() const override { return nr_ == 0 && ni_ == 0 && rr_ == 0 && ri_ == 0; }
+
+#if 0
+ public:
+  // Implement virtual methods of Sum.
+  bool is_one() const override { return nr_ == 1 && ni_ == 0 && rr_ == 0 && ri_ == 0; }
+  char const* plus_string() const { return " + "; }
+  char const* minus_string() const { return " - "; }
+#endif
 };
 
 namespace gates {
