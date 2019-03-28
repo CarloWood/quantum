@@ -5,71 +5,49 @@
 #include <complex>
 
 extern char const* ft_expected_output[];
+extern char const* ft_expected_output_sum[];
 
-struct Factor
+struct MySum : public formula::Sum
 {
-};
+  std::vector<quantum::QuBitField> m_sum;
 
-template<typename T>
-struct Sum2 : public Factor
-{
-  std::vector<T> m_sum;
+  MySum() { }
+  MySum(std::initializer_list<quantum::QuBitField> const& il) : m_sum(il) { }
 
-  Sum2() { }
-  Sum2(std::initializer_list<T> const& il) : m_sum(il) { }
-
-  // Default addition operator.
-  virtual char const* add_string() const { return " + "; }
-  // Default subtraction operator.
-  virtual char const* subtract_string() const { return " - "; }
-  // Default negation operator.
-  virtual char const* negate_string() const { return "-"; }
-
-  // Print the sum to os.
-  //
-  // Sum          print_negate_sign/is_factor (default put between square brackets)
-  //           [true/false]    [true]/true      false/[false]   false/true
-  //  0        "0"             "0"             "0"             "0"
-  //  42       "42"            "42"            "42"            "42"
-  // -42       "-42"           "-42"           "42"*           "42"*
-  //  42 + 7   "42 + 7"        "(42 + 7)"      "42 + 7"        "(42 + 7)"
-  //  42 - 7   "42 - 7"        "(42 - 7)"      "42 - 7"        "(42 - 7)"
-  // -42 + 7   "-42 + 7"       "-(42 - 7)"     "42 + 7"*       "(42 - 7)"*
-  // -42 - 7   "-42 - 7"       "-(42 + 7)"     "42 - 7"*       "(42 + 7)"*
-  //
-  // *) negate_first_term is set to false.
-  void print_on(std::ostream& os, bool& negate_first_term, bool print_negate_sign = true, bool is_factor = false) const
-  {
-    os << "FIXME";
-  }
-
-  friend std::ostream& operator<<(std::ostream& os, Sum2 const& sum) { bool nns; sum.print_on(os, nns); return os; }
-};
-
-template<typename T>
-struct Product2
-{
-  // Default multiplication operator.
-  virtual char const* multiplication_string() const { return " * "; }
+  void print_on(std::ostream& os, bool negate_all_terms, bool is_factor) const override { print_sum_on(m_sum.begin(), m_sum.end(), os, negate_all_terms, is_factor); }
+  bool starts_with_a_minus() const { return sum_starts_with_a_minus(m_sum); }
+  bool has_multiple_terms() const override { return sum_has_multiple_terms(m_sum); }
+  bool is_zero() const override { return sum_is_zero(m_sum); }
+  bool is_unity() const override { return sum_is_unity(m_sum); }
 };
 
 //============================================================================
 // Test program begins here.
 //
 
-struct ASum : public Sum2<int>
+struct MyProduct : public formula::Product
 {
-  using Sum2<int>::Sum2;
+  std::vector<MySum> m_product;
+
+  MyProduct(std::initializer_list<MySum> const& il) : m_product(il) { }
+
+  bool starts_with_a_minus() const override { return product_starts_with_a_minus(m_product); }
+  bool is_zero() const override { return product_is_zero(m_product); }
+  bool is_unity() const override { return product_is_unity(m_product); }
+  void print_on(std::ostream& os, bool UNUSED_ARG(negate_all_terms), bool UNUSED_ARG(is_factor)) const override { print_product_on(m_product.begin(), m_product.end(), os); }
 };
 
-struct AProduct : public Product2<ASum>
+struct MySum2 : public formula::Sum
 {
-  using Product2::Product2;
-};
+  std::vector<MyProduct> m_sum;
 
-struct ASum2 : public Sum2<AProduct>
-{
-  using Sum2<AProduct>::Sum2;
+  MySum2(std::initializer_list<MyProduct> const& il) : m_sum(il) { }
+
+  void print_on(std::ostream& os, bool negate_all_terms, bool is_factor) const override { print_sum_on(m_sum.begin(), m_sum.end(), os, negate_all_terms, is_factor); }
+  bool starts_with_a_minus() const { return sum_starts_with_a_minus(m_sum); }
+  bool has_multiple_terms() const override { return sum_has_multiple_terms(m_sum); }
+  bool is_zero() const override { return sum_is_zero(m_sum); }
+  bool is_unity() const override { return sum_is_unity(m_sum); }
 };
 
 int main()
@@ -141,26 +119,17 @@ int main()
         for (int t1 = 0; t1 < 2; ++t1)
         {
           bool const is_factor = t1;
-          bool const is_negative = v.m_real < 0 || (v.m_real == 0 && v.m_imag < 0);
+          bool const starts_with_a_minus = v.m_real < 0 || (v.m_real == 0 && v.m_imag < 0);
 
           Dout(dc::notice|continued_cf|flush_cf, "Input: \"" << v.m_real << " + " << v.m_imag << " i\", is_factor = " << is_factor << "; output: \"");
 
-          bool negate_first_term0 = is_negative;
-          std::stringstream ss_no_print_negate_sign;
-          print_formula_on(v, ss_no_print_negate_sign, negate_first_term0, false, is_factor);
-          auto si = ss_no_print_negate_sign.str().find_first_not_of('(');
-          std::string output0 = (is_negative ? "-" : "") + ss_no_print_negate_sign.str();
+          std::stringstream ss;
+          formula::print_formula_on(v, ss, false, is_factor);
+          auto si = ss.str().find_first_not_of('(');
+          std::string output0 = (starts_with_a_minus ? "-" : "") + ss.str();
           Dout(dc::finish, output0 << "\".");
           // Never starts with a minus sign.
-          ASSERT(ss_no_print_negate_sign.str()[si] != '-');
-          // Only set for negative values, it should always be reset.
-          ASSERT(!negate_first_term0);
-
-          std::stringstream ss_print_negate_sign;
-          bool negate_first_term1 = false;
-          print_formula_on(v, ss_print_negate_sign, negate_first_term1, true, is_factor);
-          // Should always be equal when minus sign is prepended.
-          ASSERT(ss_print_negate_sign.str() == output0);
+          ASSERT(ss.str()[si] != '-');
 
           ASSERT(output0 == expected[test_cnt]);
           ++test_cnt;
@@ -169,9 +138,9 @@ int main()
     Dout(dc::notice, "SUCCESS.");
   }
 
-  // Test print_formula_on for quantum::QuBitField.
+  // Test print_on for quantum::QuBitField.
   {
-    Dout(dc::notice, "TEST OF print_formula_on(quantum::QuBitField const&, ...).");
+    Dout(dc::notice, "TEST OF quantum::QuBitField::print_on(...).");
     debug::Indent indent(2);
 
     int test_cnt = 0;
@@ -184,26 +153,17 @@ int main()
             for (int t1 = 0; t1 < 2; ++t1)
             {
               bool const is_factor = t1;
-              bool const is_negative = v.is_negative();
+              bool const starts_with_a_minus = v.starts_with_a_minus();
 
               Dout(dc::notice|continued_cf|flush_cf, "Input: \"" << k << " + " << l << " i + (" << m << " + " << n << " i)·√½" << "\", is_factor = " << is_factor << "; output: \"");
 
-              bool negate_first_term0 = is_negative;
-              std::stringstream ss_no_print_negate_sign;
-              print_formula_on(v, ss_no_print_negate_sign, negate_first_term0, false, is_factor);
-              auto si = ss_no_print_negate_sign.str().find_first_not_of('(');
-              std::string output0 = (is_negative ? "-" : "") + ss_no_print_negate_sign.str();
+              std::stringstream ss;
+              v.print_on(ss, false, is_factor);
+              auto si = ss.str().find_first_not_of('(');
+              std::string output0 = (starts_with_a_minus ? "-" : "") + ss.str();
               Dout(dc::finish, output0 << "\".");
               // Never starts with a minus sign.
-              ASSERT(ss_no_print_negate_sign.str()[si] != '-');
-              // Only set for negative values, it should always be reset.
-              ASSERT(!negate_first_term0);
-
-              std::stringstream ss_print_negate_sign;
-              bool negate_first_term1 = false;
-              print_formula_on(v, ss_print_negate_sign, negate_first_term1, true, is_factor);
-              // Should always be equal when minus sign is prepended.
-              ASSERT(ss_print_negate_sign.str() == output0);
+              ASSERT(ss.str()[si] != '-');
 
               ASSERT(output0 == ft_expected_output[test_cnt]);
               ++test_cnt;
@@ -212,14 +172,40 @@ int main()
     Dout(dc::notice, "SUCCESS.");
   }
 
-#if 1
-  //ASum foo{42, 1};
-#else
-  AProduct p1{ASum{-42, -1, -2, -3}, ASum{4, 5, 6}};
-  AProduct p2{ASum{-42, 1, 2, 3}, ASum{7, 8, 9}};
+  // Test print_on for formula::Sum
+  {
+    Dout(dc::notice, "TEST OF Sum::print_on(...).");
+    debug::Indent indent(2);
 
-  ASum2 bar{p1, p2};
-#endif
+    int test_cnt = 0;
+    for (int k = -1; k <= 1; ++k)
+      for (int l = -1; l <= 1; ++l)
+        for (int m = -1; m <= 1; ++m)
+        {
+          quantum::QuBitField v(k, l, m, -1);
+          MySum my_sum{v, v};
+          for (int t1 = 0; t1 < 2; ++t1)
+          {
+            bool const is_factor = t1;
 
-  //Dout(dc::notice, foo);
+            Dout(dc::notice|continued_cf|flush_cf, "Input: \"" << k << " + " << l << " i + (" << m << " - i)·√½" << "\", is_factor = " << is_factor << "; output: \"");
+            std::stringstream ss;
+            if (my_sum.starts_with_a_minus())
+              ss << '-';
+            my_sum.print_on(ss, false, is_factor);
+            Dout(dc::finish, ss.str() << "\".");
+
+            ASSERT(ss.str() == ft_expected_output_sum[test_cnt]);
+            ++test_cnt;
+          }
+        }
+    Dout(dc::notice, "SUCCESS.");
+  }
+
+  MyProduct p1{MySum{-42, -1, -2, -3}, MySum{4, 5, 6}};
+  MyProduct p2{MySum{-42, 1, 2, 3}, MySum{7, 8, 9}};
+
+  MySum2 bar{p1, p2};
+
+  Dout(dc::notice, bar);
 }
