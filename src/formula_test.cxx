@@ -36,56 +36,56 @@ int main()
     debug::Indent indent(2);
 
     char const* expected[50] = {
-      "-2 - 2·i",
-      "-(2 + 2·i)",
+      "-2 - 2\u00b7i",
+      "-(2 + 2\u00b7i)",
       "-2 - i",
       "-(2 + i)",
       "-2",
       "-2",
       "-2 + i",
       "-(2 - i)",
-      "-2 + 2·i",
-      "-(2 - 2·i)",
-      "-1 - 2·i",
-      "-(1 + 2·i)",
+      "-2 + 2\u00b7i",
+      "-(2 - 2\u00b7i)",
+      "-1 - 2\u00b7i",
+      "-(1 + 2\u00b7i)",
       "-1 - i",
       "-(1 + i)",
       "-1",
       "-1",
       "-1 + i",
       "-(1 - i)",
-      "-1 + 2·i",
-      "-(1 - 2·i)",
-      "-2·i",
-      "-2·i",
+      "-1 + 2\u00b7i",
+      "-(1 - 2\u00b7i)",
+      "-2\u00b7i",
+      "-2\u00b7i",
       "-i",
       "-i",
       "0",
       "0",
       "i",
       "i",
-      "2·i",
-      "2·i",
-      "1 - 2·i",
-      "(1 - 2·i)",
+      "2\u00b7i",
+      "2\u00b7i",
+      "1 - 2\u00b7i",
+      "(1 - 2\u00b7i)",
       "1 - i",
       "(1 - i)",
       "1",
       "1",
       "1 + i",
       "(1 + i)",
-      "1 + 2·i",
-      "(1 + 2·i)",
-      "2 - 2·i",
-      "(2 - 2·i)",
+      "1 + 2\u00b7i",
+      "(1 + 2\u00b7i)",
+      "2 - 2\u00b7i",
+      "(2 - 2\u00b7i)",
       "2 - i",
       "(2 - i)",
       "2",
       "2",
       "2 + i",
       "(2 + i)",
-      "2 + 2·i",
-      "(2 + 2·i)",
+      "2 + 2\u00b7i",
+      "(2 + 2\u00b7i)",
     };
     int test_cnt = 0;
     for (int k = -2; k <= 2; ++k)
@@ -131,7 +131,7 @@ int main()
               bool const is_factor = t1;
               bool const starts_with_a_minus = v.starts_with_a_minus();
 
-              Dout(dc::notice|continued_cf|flush_cf, "Input: \"" << k << " + " << l << " i + (" << m << " + " << n << " i)·√½" << "\", is_factor = " << is_factor << "; output: \"");
+              Dout(dc::notice|continued_cf|flush_cf, "Input: \"" << k << " + " << l << " i + (" << m << " + " << n << " i)\u00b7\u221a\u00bd" << "\", is_factor = " << is_factor << "; output: \"");
 
               std::stringstream ss;
               v.print_on(ss, false, is_factor);
@@ -164,7 +164,7 @@ int main()
           {
             bool const is_factor = t1;
 
-            Dout(dc::notice|continued_cf|flush_cf, "Input: \"" << k << " + " << l << " i + (" << m << " - i)·√½" << "\", is_factor = " << is_factor << "; output: \"");
+            Dout(dc::notice|continued_cf|flush_cf, "Input: \"" << k << " + " << l << " i + (" << m << " - i)\u00b7\u221a\u00bd" << "\", is_factor = " << is_factor << "; output: \"");
             std::stringstream ss;
             if (my_sum.starts_with_a_minus())
               ss << '-';

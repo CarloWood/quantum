@@ -97,7 +97,9 @@ void State::print_on(std::ostream& os) const
   for (auto entangled_state : adaptor::reversed(m_separable_states))
   {
     os << prefix;
-    entangled_state.print_on(os, need_parens);
+    if (entangled_state.starts_with_a_minus())
+      os << '-';
+    entangled_state.print_on(os, false, true);
     prefix = " \u2297 ";        // " ⊗ "
   }
 }

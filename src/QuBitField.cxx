@@ -111,11 +111,11 @@ void QuBitField::print_on(std::ostream& os, bool negate_all_terms, bool is_facto
       if (have_non_root_part)
         os << ((root.starts_with_a_minus() != negate_all_terms) ? " - " : " + ");
       if (root.is_unity())
-        os << "√½";
+        os << "\u221a\u00bd"; // "√½"
       else
       {
         formula::print_formula_on(root, os, negate_all_terms, true);
-        os << "·√½";
+        os << "\u00b7\u221a\u00bd"; // "·√½"
       }
     }
     if (has_multiple_terms && is_factor)

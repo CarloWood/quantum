@@ -30,10 +30,10 @@ void EntangledState::apply(QMatrix const& matrix, q_index_type chain)
     if ((i0 & rowbit_mask))
       continue; // Already handled as i1.
     unsigned long i1 = i0 | rowbit_mask;
-    QVector v1{m_coef[i0], m_coef[i1]};
+    QVector v1{m_sum[i0], m_sum[i1]};
     QVector v2{matrix * v1};
-    m_coef[i0] = v2[0];
-    m_coef[i1] = v2[1];
+    m_sum[i0] = v2[0];
+    m_sum[i1] = v2[1];
   }
   Dout(dc::notice, "Result: " << *this);
 }
@@ -139,14 +139,14 @@ void EntangledState::apply(QMatrixX const& matrix, InputCollector const& inputs)
   Eigen::Matrix<QuBitField, Eigen::Dynamic, 1> v1;
   v1.resize(number_of_matrix_product_states);
 
-  // This allows us to generate the index into m_coef starting at the top of the first
+  // This allows us to generate the index into m_sum starting at the top of the first
   // column and then going down first and left to right second.
   unsigned long vi = 0;
   for (unsigned long i = 0;;)
   {
     unsigned long mask;
     // Copy coefficients to the temporary vector.
-    v1[vi++] = m_coef[i];
+    v1[vi++] = m_sum[i];
     vi %= number_of_matrix_product_states;
     // Do we have a complete vector/column?
     if (vi == 0)
@@ -155,11 +155,11 @@ void EntangledState::apply(QMatrixX const& matrix, InputCollector const& inputs)
       Eigen::Matrix<QuBitField, Eigen::Dynamic, 1> v2;
       v2.resize(number_of_matrix_product_states);
       v2 = matrix * v1;
-      // Copy v2 back to m_coef.
+      // Copy v2 back to m_sum.
       unsigned long i2 = i & ~used_mask;        // Reset to top of the column.
       for (unsigned long vi2 = 0; vi2 < number_of_matrix_product_states; ++vi2)
       {
-        m_coef[i2] = v2[vi2];
+        m_sum[i2] = v2[vi2];
         // "Increment" i2.
         int j = 0;
         while (j < m_number_of_quantum_bits && ((mask = masks[j]) & i2))
@@ -206,74 +206,69 @@ void EntangledState::merge(EntangledState const& entangled_state)
   unsigned long const number_of_states = 1UL << m_number_of_quantum_bits;
   std::vector<QuBitField> new_coef;
   for (unsigned long si = 0; si < number_of_states; ++si)
-    new_coef.push_back(m_coef[si % rowbit_mod] * entangled_state.m_coef[si / rowbit_mod]);
-  m_coef.swap(new_coef);
+    new_coef.push_back(m_sum[si % rowbit_mod] * entangled_state.m_sum[si / rowbit_mod]);
+  m_sum.swap(new_coef);
   m_q_index_mask |= entangled_state.m_q_index_mask;
 }
 
-void EntangledState::print_on(std::ostream& os, bool need_parens) const
+void EntangledState::print_on(std::ostream& os, bool negate_all_terms, bool is_factor) const
 {
-#if 0
   unsigned long const number_of_product_states = 1 << m_number_of_quantum_bits;
   if (number_of_product_states == 1)
   {
     os << 'I';
     return;
   }
-  char const* prefix = "";
-  bool multiple_product_states = need_parens;
-  if (need_parens)
-  {
-    int cnt = 0;
-    for (unsigned long state = 0; state < number_of_product_states; ++state)
-      if (m_coef[state] != 0)
-        if (cnt++ > 1)
-          break;
-    if (cnt == 1)
-      multiple_product_states = false;
-  }
-  if (need_parens && multiple_product_states)
+  //--------------------------------------------------------------------------
+  // This is a copy of Sum::print_on, with some adjustments marked with a *).
+  bool const starts_with_a_minus_ = starts_with_a_minus() != negate_all_terms;
+  bool const has_multiple_terms_ = has_multiple_terms();
+  bool const needs_parens = has_multiple_terms_ && is_factor;
+  bool const toggle_sign_all_terms = (needs_parens && starts_with_a_minus_) != negate_all_terms;
+  if (needs_parens)
     os << '(';
-  for (unsigned long state = 0; state < number_of_product_states; ++state)
+  bool first_term = true;
+  auto first = m_sum.begin();
+  unsigned long state = 0;      // *) Added.
+  do
   {
-    if (m_coef[state] == 0)
-      continue;
-    os << prefix;
-    prefix = " + ";
-    if (m_coef[state] == -1)
-      os << '-';
-    else if (m_coef[state] != 1)
+    if (!formula::is_zero(*first))
     {
-      bool has_multiple_terms;
-      std::stringstream ss;
-      FormulaPrinter<QuBitField>(m_coef[state]).print_on(ss, has_multiple_terms);
-      if (has_multiple_terms)
-        os << '(';
-      os << ss.str();
-      if (has_multiple_terms)
-        os << ')';
-    }
-    os << "\u00b7|"; // "·|"
-    for (int i = m_number_of_quantum_bits - 1; i >= 0; --i)
-    {
-      int mask = 1 << i;
-      os << ((state & mask) ? '1' : '0');
-      print_subscript_on(os, m_q_index[i].get_value());
-    }
-    os << "\u27e9"; // "⟩"
-    prefix = " + ";
-  }
-  if (need_parens && multiple_product_states)
-    os << ')';
+      if (!first_term)
+        os << (formula::starts_with_a_minus(*first) != toggle_sign_all_terms ? " - " : " + ");
+#if 1                           // *) Added.
+      if (first->is_unity())
+        os << '|';
+      else
+      {
 #endif
-  os << "FIXME";
+        print_formula_on(*first, os, toggle_sign_all_terms, true /* *) was false */);
+#if 1                           // *) Added.
+        os << "\u00b7|"; // "·|"
+      }
+      for (int i = m_number_of_quantum_bits - 1; i >= 0; --i)
+      {
+        int mask = 1 << i;
+        os << ((state & mask) ? '1' : '0');
+        print_subscript_on(os, m_q_index[i].get_value());
+      }
+      os << "\u27e9"; // "⟩"
+#endif
+      first_term = false;
+    }
+    ++state;                    // * Added.
+  }
+  while (++first != m_sum.end());
+  if (needs_parens)
+    os << ')';
+  //--------------------------------------------------------------------------
 }
 
 void swap(EntangledState& lhs, EntangledState& rhs)
 {
   std::swap(lhs.m_number_of_quantum_bits, rhs.m_number_of_quantum_bits);
   std::swap(lhs.m_q_index_mask, rhs.m_q_index_mask);
-  std::swap(lhs.m_coef, rhs.m_coef);
+  std::swap(lhs.m_sum, rhs.m_sum);
   std::swap(lhs.m_q_index, rhs.m_q_index);
 }
 
@@ -287,7 +282,7 @@ bool operator!=(EntangledState const& lhs, EntangledState const& rhs)
   assert(lhs.m_q_index_mask == rhs.m_q_index_mask);
   // Sorry, not implemented yet.
   assert(lhs.m_q_index == rhs.m_q_index);
-  return lhs.m_coef != rhs.m_coef;
+  return lhs.m_sum != rhs.m_sum;
 }
 
 } // namespace quantum
