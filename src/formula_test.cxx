@@ -7,47 +7,23 @@
 extern char const* ft_expected_output[];
 extern char const* ft_expected_output_sum[];
 
-struct MySum : public formula::Sum
+struct MySum : public formula::Sum<std::vector<quantum::QuBitField>>
 {
-  std::vector<quantum::QuBitField> m_sum;
-
-  MySum() { }
-  MySum(std::initializer_list<quantum::QuBitField> const& il) : m_sum(il) { }
-
-  void print_on(std::ostream& os, bool negate_all_terms, bool is_factor) const override { print_sum_on(m_sum.begin(), m_sum.end(), os, negate_all_terms, is_factor); }
-  bool starts_with_a_minus() const { return sum_starts_with_a_minus(m_sum); }
-  bool has_multiple_terms() const override { return sum_has_multiple_terms(m_sum); }
-  bool is_zero() const override { return sum_is_zero(m_sum); }
-  bool is_unity() const override { return sum_is_unity(m_sum); }
+  using formula::Sum<std::vector<quantum::QuBitField>>::Sum;
 };
 
 //============================================================================
 // Test program begins here.
 //
 
-struct MyProduct : public formula::Product
+struct MyProduct : public formula::Product<std::vector<MySum>>
 {
-  std::vector<MySum> m_product;
-
-  MyProduct(std::initializer_list<MySum> const& il) : m_product(il) { }
-
-  bool starts_with_a_minus() const override { return product_starts_with_a_minus(m_product); }
-  bool is_zero() const override { return product_is_zero(m_product); }
-  bool is_unity() const override { return product_is_unity(m_product); }
-  void print_on(std::ostream& os, bool UNUSED_ARG(negate_all_terms), bool UNUSED_ARG(is_factor)) const override { print_product_on(m_product.begin(), m_product.end(), os); }
+  using formula::Product<std::vector<MySum>>::Product;
 };
 
-struct MySum2 : public formula::Sum
+struct MySum2 : public formula::Sum<std::vector<MyProduct>>
 {
-  std::vector<MyProduct> m_sum;
-
-  MySum2(std::initializer_list<MyProduct> const& il) : m_sum(il) { }
-
-  void print_on(std::ostream& os, bool negate_all_terms, bool is_factor) const override { print_sum_on(m_sum.begin(), m_sum.end(), os, negate_all_terms, is_factor); }
-  bool starts_with_a_minus() const { return sum_starts_with_a_minus(m_sum); }
-  bool has_multiple_terms() const override { return sum_has_multiple_terms(m_sum); }
-  bool is_zero() const override { return sum_is_zero(m_sum); }
-  bool is_unity() const override { return sum_is_unity(m_sum); }
+  using formula::Sum<std::vector<MyProduct>>::Sum;
 };
 
 int main()
@@ -183,7 +159,7 @@ int main()
         for (int m = -1; m <= 1; ++m)
         {
           quantum::QuBitField v(k, l, m, -1);
-          MySum my_sum{v, v};
+          MySum my_sum{{v, v}};
           for (int t1 = 0; t1 < 2; ++t1)
           {
             bool const is_factor = t1;
@@ -202,10 +178,10 @@ int main()
     Dout(dc::notice, "SUCCESS.");
   }
 
-  MyProduct p1{MySum{-42, -1, -2, -3}, MySum{4, 5, 6}};
-  MyProduct p2{MySum{-42, 1, 2, 3}, MySum{7, 8, 9}};
+  MyProduct p1{{MySum{{-42, -1, -2, -3}}, MySum{{4, 5, 6}}}};
+  MyProduct p2{{MySum{{-42, 1, 2, 3}}, MySum{{7, 8, 9}}}};
 
-  MySum2 bar{p1, p2};
+  MySum2 bar{{p1, p2}};
 
   Dout(dc::notice, bar);
 }

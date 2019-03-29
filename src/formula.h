@@ -7,249 +7,306 @@
 
 namespace formula {
 
+template<class SumContainer>
 struct Sum
 {
-  virtual ~Sum() { }
-  virtual bool starts_with_a_minus() const = 0;         // The derived class must call sum_starts_with_a_minus.
-  virtual bool has_multiple_terms() const = 0;          // The derived class must call sum_has_multiple_terms.
-  virtual bool is_zero() const = 0;                     // The derived class must call sum_is_zero.
-  virtual bool is_unity() const = 0;                    // The derived class must call sum_is_unity.
-  virtual void print_on(std::ostream& os, bool negate_all_terms, bool is_factor) const = 0; // The derived class must call print_sum_on.
-
-  friend std::ostream& operator<<(std::ostream& os, Sum const& number);
+  using formula_tag = void;
+  using container_type = SumContainer;
 
  protected:
-  template<class InputIt>
-  void print_sum_on(InputIt first, InputIt last, std::ostream& os, bool negate_all_terms, bool is_factor) const;
+  SumContainer m_sum;
 
-  // Return true iff the first terms starts with a minus sign.
-  template<class SumContainer>
-  bool sum_starts_with_a_minus(SumContainer const& terms) const;
+ public:
+  Sum(SumContainer&& sum) : m_sum(std::move(sum)) { }
+  Sum(SumContainer const& sum) : m_sum(sum) { }
+  virtual ~Sum() { }
 
-  // Count the number of non-zero terms and return true iff there is more than one.
-  template<class SumContainer>
-  bool sum_has_multiple_terms(SumContainer const& terms) const;
-
-  // Returns true if the sum has no terms or only zero terms.
-  template<class SumContainer>
-  bool sum_is_zero(SumContainer const& terms) const;
-
-  // Returns true if the sum has exactly one term, which is unity (1 or -1).
-  template<class SumContainer>
-  bool sum_is_unity(SumContainer const& terms) const;
+  virtual bool starts_with_a_minus() const;
+  virtual bool has_multiple_terms() const;
+  virtual bool is_zero() const;
+  virtual bool is_unity() const;
+  virtual void print_on(std::ostream& os, bool negate_all_terms, bool is_factor) const;
 };
 
+template<class ProductContainer>
 struct Product
 {
+  using formula_tag = void;
+  using container_type = ProductContainer;
+
+ protected:
+  ProductContainer m_product;
+
+ public:
+  Product(ProductContainer&& product) : m_product(std::move(product)) { }
+  Product(ProductContainer const& product) : m_product(product) { }
   virtual ~Product() { }
-  virtual bool starts_with_a_minus() const = 0;                 // The derived class must call product_starts_with_a_minus.
-  virtual bool is_zero() const = 0;                             // The derived class must call product_is_zero.
-  virtual bool is_unity() const = 0;                            // The derived class must call product_is_unity.
-  virtual void print_on(std::ostream& os, bool negate_all_terms, bool) const = 0; // The derived class must call print_product_on.
-  bool has_multiple_terms() const { return false; }
+
+  virtual bool starts_with_a_minus() const;
+  virtual bool is_zero() const;
+  virtual bool is_unity() const;
+  virtual void print_on(std::ostream& os) const;
 
   // Default multiplication operator.
   virtual char const* multiply_string() const { return " * "; }
+};
 
-  friend std::ostream& operator<<(std::ostream& os, Product const& number);
-
- protected:
-  template<class InputIt>
-  void print_product_on(InputIt first, InputIt last, std::ostream& os) const;
-
-  template<class ProductContainer>
-  bool product_starts_with_a_minus(ProductContainer const& factors) const;
-
-  template<class ProductContainer>
-  bool product_is_zero(ProductContainer const& factors) const;
-
-  template<class ProductContainer>
-  bool product_is_unity(ProductContainer const& factors) const;
+template<typename T, typename = void>
+struct is_formula : std::false_type
+{
 };
 
 template<typename T>
-void print_formula_on(T const& number, std::ostream& os, bool negate_all_terms, bool is_factor = false)
+struct is_formula<T, typename T::formula_tag> : std::true_type
 {
-  if constexpr (!std::is_base_of<Sum, T>::value && !std::is_base_of<Product, T>::value)
-  {
-    // The general type T must be like an int: usable as both term or factor without parentheses,
-    // and when printed to an ostream starts with a '-' character when negative while when that
-    // minus sign is removed from the printed string that is the same as negating the number.
+};
 
-    std::stringstream ss;
-    ss << number;
-    assert(!ss.str().empty());
-    // A number may never start with a '('. Either use Sum or specialize this template function.
-    assert(ss.str()[0] != '(');
-    // Always remove any leading minus sign.
-    int offset = ss.str()[0] == '-' ? 1 : 0;
-    os << ss.str().substr(offset);
-  }
-  else
-    number.print_on(os, negate_all_terms, is_factor);
+//----------------------------------------------------------------------------
+// print_formula_on
+//
+
+template<typename T, typename std::enable_if<!is_formula<T>::value, int>::type = 0>
+void print_formula_on(T const& number, std::ostream& os, bool UNUSED_ARG(negate_all_terms), bool UNUSED_ARG(is_factor) = false)
+{
+  // The general type T must be like an int: usable as both term or factor without parentheses,
+  // and when printed to an ostream starts with a '-' character when negative while when that
+  // minus sign is removed from the printed string that is the same as negating the number.
+
+  std::stringstream ss;
+  ss << number;
+  assert(!ss.str().empty());
+  // A number may never start with a '('. Either use Sum or specialize this template function.
+  assert(ss.str()[0] != '(');
+  // Always remove any leading minus sign.
+  int offset = ss.str()[0] == '-' ? 1 : 0;
+  os << ss.str().substr(offset);
 }
 
-template<typename T, typename std::enable_if<!std::is_base_of<Sum, T>::value && !std::is_base_of<Product, T>::value, int>::type = 0>
-bool is_zero(T const& number)
+template<typename SumContainer>
+inline void print_formula_on(Sum<SumContainer> const& number, std::ostream& os, bool negate_all_terms, bool is_factor = false)
+{
+  number.print_on(os, negate_all_terms, is_factor);
+}
+
+template<typename ProductContainer>
+inline void print_formula_on(Product<ProductContainer> const& number, std::ostream& os, bool UNUSED_ARG(negate_all_terms), bool UNUSED_ARG(is_factor) = false)
+{
+  number.print_on(os);
+}
+
+//----------------------------------------------------------------------------
+// is_zero
+//
+
+template<typename T, typename std::enable_if<!is_formula<T>::value, int>::type = 0>
+inline bool is_zero(T const& number)
 {
   return number == 0;
 }
 
-inline bool is_zero(Sum const& number)
+template<typename T, typename std::enable_if<is_formula<T>::value, int>::type = 0>
+inline bool is_zero(T const& number)
 {
   return number.is_zero();
 }
 
-inline bool is_zero(Product const& number)
-{
-  return number.is_zero();
-}
+//----------------------------------------------------------------------------
+// is_unity
+//
 
-template<typename T, typename std::enable_if<!std::is_base_of<Sum, T>::value && !std::is_base_of<Product, T>::value, int>::type = 0>
-bool is_unity(T const& number)
+template<typename T, typename std::enable_if<!is_formula<T>::value, int>::type = 0>
+inline bool is_unity(T const& number)
 {
   return number == 1 || number == -1;
 }
 
-inline bool is_unity(Sum const& number)
+template<typename T, typename std::enable_if<is_formula<T>::value, int>::type = 0>
+inline bool is_unity(T const& number)
 {
   return number.is_unity();
 }
 
-inline bool is_unity(Product const& number)
-{
-  return number.is_unity();
-}
+//----------------------------------------------------------------------------
+// starts_with_a_minus
+//
 
-template<typename T, typename std::enable_if<!std::is_base_of<Sum, T>::value && !std::is_base_of<Product, T>::value, int>::type = 0>
-bool starts_with_a_minus(T const& number)
+template<typename T, typename std::enable_if<!is_formula<T>::value, int>::type = 0>
+inline bool starts_with_a_minus(T const& number)
 {
   return number < 0;
 }
 
-inline bool starts_with_a_minus(Sum const& number)
+template<typename T, typename std::enable_if<is_formula<T>::value, int>::type = 0>
+inline bool starts_with_a_minus(T const& number)
 {
   return number.starts_with_a_minus();
 }
 
-inline bool starts_with_a_minus(Product const& number)
-{
-  return number.starts_with_a_minus();
-}
+//----------------------------------------------------------------------------
+// Definitions of Sum member functions.
+//
 
-template<class InputIt>
-void Sum::print_sum_on(InputIt first, InputIt last, std::ostream& os, bool negate_all_terms, bool is_factor) const
+// If these member functions are overridden in the derived class,
+// then the following implementations might not even compile.
+// Therefore test for the existance of SumContainer::const_iterator
+// in all cases.
+
+template<typename T, typename = void>
+struct has_const_iterator : std::false_type {};
+
+template<typename T>
+struct has_const_iterator<T, std::void_t<decltype(cbegin(std::declval<T>()))>> : std::true_type {};
+
+template<class SumContainer>
+void Sum<SumContainer>::print_on(std::ostream& os, bool negate_all_terms, bool is_factor) const
 {
-  if (is_zero())
+  if constexpr (has_const_iterator<SumContainer>::value)
   {
-    os << "0";
-    return;
-  }
-  bool const starts_with_a_minus_ = starts_with_a_minus() != negate_all_terms;
-  bool const has_multiple_terms_ = has_multiple_terms();
-  bool const needs_parens = has_multiple_terms_ && is_factor;
-  bool const toggle_sign_all_terms = (needs_parens && starts_with_a_minus_) != negate_all_terms;
-  if (needs_parens)
-    os << '(';
-  bool first_term = true;
-  do
-  {
-    if (!formula::is_zero(*first))
+    if (is_zero())
     {
-      if (!first_term)
-        os << (formula::starts_with_a_minus(*first) != toggle_sign_all_terms ? " - " : " + ");
-      print_formula_on(*first, os, toggle_sign_all_terms, false);
-      first_term = false;
+      os << "0";
+      return;
     }
+    bool const starts_with_a_minus_ = starts_with_a_minus() != negate_all_terms;
+    bool const has_multiple_terms_ = has_multiple_terms();
+    bool const needs_parens = has_multiple_terms_ && is_factor;
+    bool const toggle_sign_all_terms = (needs_parens && starts_with_a_minus_) != negate_all_terms;
+    if (needs_parens)
+      os << '(';
+    bool first_term = true;
+    auto first = m_sum.begin();
+    do
+    {
+      if (!formula::is_zero(*first))
+      {
+        if (!first_term)
+          os << (formula::starts_with_a_minus(*first) != toggle_sign_all_terms ? " - " : " + ");
+        print_formula_on(*first, os, toggle_sign_all_terms, false);
+        first_term = false;
+      }
+    }
+    while (++first != m_sum.end());
+    if (needs_parens)
+      os << ')';
   }
-  while (++first != last);
-  if (needs_parens)
-    os << ')';
 }
 
 template<class SumContainer>
-bool Sum::sum_starts_with_a_minus(SumContainer const& terms) const
+bool Sum<SumContainer>::starts_with_a_minus() const
 {
-  for (auto&& term : terms)
+  if constexpr (has_const_iterator<SumContainer>::value)
   {
-    if (term.is_zero())
-      continue;
-    return term.starts_with_a_minus();
+    for (auto&& term : m_sum)
+      if (!formula::is_zero(term))
+        return formula::starts_with_a_minus(term);
   }
   return false;
 }
 
 template<class SumContainer>
-bool Sum::sum_has_multiple_terms(SumContainer const& terms) const
+bool Sum<SumContainer>::has_multiple_terms() const
 {
-  int cnt = 0;
-  for (auto&& term : terms)
+  if constexpr (has_const_iterator<SumContainer>::value)
   {
-    if (term.is_zero())
-      continue;
-    if (++cnt > 1)
-      return true;
+    int cnt = 0;
+    for (auto&& term : m_sum)
+      if (!formula::is_zero(term) && ++cnt > 1)
+        return true;
   }
   return false;
 }
 
 template<class SumContainer>
-bool Sum::sum_is_zero(SumContainer const& terms) const
+bool Sum<SumContainer>::is_zero() const
 {
-  return !std::any_of(terms.begin(), terms.end(), [](typename SumContainer::value_type const& i){ return !i.is_zero(); });
+  if constexpr (has_const_iterator<SumContainer>::value)
+  {
+    return !std::any_of(m_sum.begin(), m_sum.end(),
+        [](typename SumContainer::value_type const& i)
+        { return !i.is_zero(); });
+  }
+  else
+    return false;
 }
 
 template<class SumContainer>
-bool Sum::sum_is_unity(SumContainer const& terms) const
+bool Sum<SumContainer>::is_unity() const
 {
-  return terms.size() == 1 && formula::is_unity(terms[0]);
+  if constexpr (has_const_iterator<SumContainer>::value)
+  {
+    auto first = m_sum.begin();
+    return first != m_sum.end() && formula::is_unity(*first);
+  }
+  else
+    return false;
 }
 
-template<class InputIt>
-void Product::print_product_on(InputIt first, InputIt last, std::ostream& os) const
+//----------------------------------------------------------------------------
+// Definitions of Product member functions.
+//
+
+template<class ProductContainer>
+void Product<ProductContainer>::print_on(std::ostream& os) const
 {
   if (is_zero())
-  {
     os << "0";
-    return;
-  }
-  if (is_unity())
-  {
+  else if (is_unity())
     os << "1";
-    return;
-  }
-  bool first_term = true;
-  do
+  else
   {
-    if (!formula::is_unity(*first))
+    bool first_term = true;
+    auto first = m_product.begin();
+    do
     {
-      if (!first_term)
-        os << multiply_string();
-      print_formula_on(*first, os, false, true);
-      first_term = false;
+      if (!formula::is_unity(*first))
+      {
+        if (!first_term)
+          os << multiply_string();
+        print_formula_on(*first, os, false, true);
+        first_term = false;
+      }
     }
+    while (++first != m_product.end());
   }
-  while (++first != last);
 }
 
 template<class ProductContainer>
-bool Product::product_starts_with_a_minus(ProductContainer const& factors) const
+bool Product<ProductContainer>::starts_with_a_minus() const
 {
   bool result = false;
-  std::for_each(factors.begin(), factors.end(), [&result](typename ProductContainer::value_type const& factor){ if (factor.starts_with_a_minus()) result = !result; });
+  std::for_each(m_product.begin(), m_product.end(),
+      [&result](typename ProductContainer::value_type const& factor)
+      { if (factor.starts_with_a_minus()) result = !result; });
   return result;
 }
 
 template<class ProductContainer>
-bool Product::product_is_zero(ProductContainer const& factors) const
+bool Product<ProductContainer>::is_zero() const
 {
-  return std::any_of(factors.begin(), factors.end(), [](typename ProductContainer::value_type const& factor){ return factor.is_zero(); });
+  return std::any_of(m_product.begin(), m_product.end(),
+      [](typename ProductContainer::value_type const& factor)
+      { return factor.is_zero(); });
 }
 
 template<class ProductContainer>
-bool Product::product_is_unity(ProductContainer const& factors) const
+bool Product<ProductContainer>::is_unity() const
 {
-  return std::all_of(factors.begin(), factors.end(), [](typename ProductContainer::value_type const& factor){ return factor.is_unity(); });
+  return std::all_of(m_product.begin(), m_product.end(),
+      [](typename ProductContainer::value_type const& factor)
+      { return factor.is_unity(); });
+}
+
+//----------------------------------------------------------------------------
+// Print formula to an ostream.
+//
+
+template<class T, typename std::enable_if<is_formula<T>::value, int>::type = 0>
+std::ostream& operator<<(std::ostream& os, T const& number)
+{
+  if (number.starts_with_a_minus())
+    os << '-';
+  number.print_on(os, false, false);
+  return os;
 }
 
 } // namespace formula

@@ -69,12 +69,16 @@ namespace quantum {
 
 QuBitField operator*(QuBitField const& v1, QuBitField const& v2)
 {
+  static constexpr int nr_ = QuBitField::nr_;
+  static constexpr int ni_ = QuBitField::ni_;
+  static constexpr int rr_ = QuBitField::rr_;
+  static constexpr int ri_ = QuBitField::ri_;
   QuBitField result;
   mpq_rational half(1, 2);
-  result.nr_ = v1.nr_ * v2.nr_ - v1.ni_ * v2.ni_ + half * (v1.rr_ * v2.rr_ - v1.ri_ * v2.ri_);
-  result.ni_ = v1.nr_ * v2.ni_ + v1.ni_ * v2.nr_ + half * (v1.rr_ * v2.ri_ + v1.ri_ * v2.rr_);
-  result.rr_ = v1.rr_ * v2.nr_ - v1.ri_ * v2.ni_ + v1.nr_ * v2.rr_ - v1.ni_ * v2.ri_;
-  result.ri_ = v1.rr_ * v2.ni_ + v1.ri_ * v2.nr_ + v1.nr_ * v2.ri_ + v1.ni_ * v2.rr_;
+  result.m_sum[nr_] = v1.m_sum[nr_] * v2.m_sum[nr_] - v1.m_sum[ni_] * v2.m_sum[ni_] + half * (v1.m_sum[rr_] * v2.m_sum[rr_] - v1.m_sum[ri_] * v2.m_sum[ri_]);
+  result.m_sum[ni_] = v1.m_sum[nr_] * v2.m_sum[ni_] + v1.m_sum[ni_] * v2.m_sum[nr_] + half * (v1.m_sum[rr_] * v2.m_sum[ri_] + v1.m_sum[ri_] * v2.m_sum[rr_]);
+  result.m_sum[rr_] = v1.m_sum[rr_] * v2.m_sum[nr_] - v1.m_sum[ri_] * v2.m_sum[ni_] + v1.m_sum[nr_] * v2.m_sum[rr_] - v1.m_sum[ni_] * v2.m_sum[ri_];
+  result.m_sum[ri_] = v1.m_sum[rr_] * v2.m_sum[ni_] + v1.m_sum[ri_] * v2.m_sum[nr_] + v1.m_sum[nr_] * v2.m_sum[ri_] + v1.m_sum[ni_] * v2.m_sum[rr_];
   return result;
 }
 
@@ -86,8 +90,8 @@ void QuBitField::print_on(std::ostream& os, bool negate_all_terms, bool is_facto
   {
     bool const has_multiple_terms = this->has_multiple_terms();
     bool const starts_with_a_minus = this->starts_with_a_minus() != negate_all_terms;
-    bool const have_non_root_part = nr_ != 0 || ni_ != 0;
-    bool const have_root_part = rr_ != 0 || ri_ != 0;
+    bool const have_non_root_part = m_sum[nr_] != 0 || m_sum[ni_] != 0;
+    bool const have_root_part = m_sum[rr_] != 0 || m_sum[ri_] != 0;
 
     if (has_multiple_terms && is_factor)
     {
@@ -98,12 +102,12 @@ void QuBitField::print_on(std::ostream& os, bool negate_all_terms, bool is_facto
     }
     if (have_non_root_part)
     {
-      quantum::RationalsComplex non_root(nr_, ni_);
+      quantum::RationalsComplex non_root(m_sum[nr_], m_sum[ni_]);
       formula::print_formula_on(non_root, os, negate_all_terms, false);
     }
     if (have_root_part)
     {
-      quantum::RationalsComplex root(rr_, ri_);
+      quantum::RationalsComplex root(m_sum[rr_], m_sum[ri_]);
       if (have_non_root_part)
         os << ((root.starts_with_a_minus() != negate_all_terms) ? " - " : " + ");
       if (root.is_unity())

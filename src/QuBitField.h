@@ -1,6 +1,7 @@
 #pragma once
 
 #include "formula.h"
+#include <Eigen/Core>
 #include <boost/multiprecision/gmp.hpp>
 #include <string>
 
@@ -37,51 +38,42 @@ void print_formula_on(quantum::RationalsComplex const& number, std::ostream& os,
 namespace quantum {
 
 // This class represents the numbers ℚ[i, 1/√2] = { (k + l·i) + (m + n·i)·√½ | k,l,m,n ∈ ℚ }
-class QuBitField : public formula::Sum
+class QuBitField : public formula::Sum<Eigen::Matrix<mpq_rational, 4, 1>>
 {
- private:
-  mpq_rational nr_;     // Non-root Real: k.
-  mpq_rational ni_;     // Non-root Imaginary: l.
-  mpq_rational rr_;     // Root Real: m.
-  mpq_rational ri_;     // Root Imaginary: n.
+  using base_type = formula::Sum<Eigen::Matrix<mpq_rational, 4, 1>>;
 
-  QuBitField(double) {}
+ private:
+  static constexpr int nr_ = 0; // Non-root Real: k.
+  static constexpr int ni_ = 1; // Non-root Imaginary: l.
+  static constexpr int rr_ = 2; // Root Real: m.
+  static constexpr int ri_ = 3; // Root Imaginary: n.
 
  public:
-  QuBitField() : nr_(0), ni_(0), rr_(0), ri_(0) { }
-  QuBitField(int nr) : nr_(nr), ni_(0), rr_(0), ri_(0) { }
-  QuBitField(mpq_rational nr) : nr_(nr), ni_(0), rr_(0), ri_(0) { }
-  QuBitField(mpq_rational nr, mpq_rational ni, mpq_rational rr, mpq_rational ri) : nr_(nr), ni_(ni), rr_(rr), ri_(ri) { }
-  QuBitField(QuBitField const& v) : nr_(v.nr_), ni_(v.ni_), rr_(v.rr_), ri_(v.ri_) { }
+  using base_type::Sum;
+  QuBitField() : base_type{{0, 0, 0, 0}} { }
+  QuBitField(int nr) : base_type{{nr, 0, 0, 0}} { }
+  QuBitField(mpq_rational nr) : base_type{{nr, 0, 0, 0}} { }
+  QuBitField(mpq_rational nr, mpq_rational ni, mpq_rational rr, mpq_rational ri) : base_type{{ nr, ni, rr, ri}} { }
+  QuBitField(QuBitField const& v) : base_type(v.m_sum) { }
 
-  QuBitField& operator+=(QuBitField const& v) { nr_ += v.nr_; ni_ += v.ni_; rr_ += v.rr_; ri_ += v.ri_; return *this; }
-  QuBitField& operator-=(QuBitField const& v) { nr_ -= v.nr_; ni_ -= v.ni_; rr_ -= v.rr_; ri_ -= v.ri_; return *this; }
+  QuBitField& operator+=(QuBitField const& v) { m_sum += v.m_sum; return *this; }
+  QuBitField& operator-=(QuBitField const& v) { m_sum -= v.m_sum; return *this; }
   QuBitField& operator*=(QuBitField const& v) { QuBitField self(*this); *this = self * v; return *this; }
-  QuBitField operator-() const { return QuBitField(-nr_, -ni_, -rr_, -ri_); }
-
-//  std::string to_string(bool need_parens = false) const;
+  QuBitField operator-() const { return base_type::container_type(-m_sum); }
 
   friend QuBitField operator+(QuBitField const& v1, QuBitField const& v2) { QuBitField result(v1); result += v2; return result; }
   friend QuBitField operator-(QuBitField const& v1, QuBitField const& v2) { QuBitField result(v1); result -= v2; return result; }
   friend QuBitField operator*(QuBitField const& v1, QuBitField const& v2);
-  friend bool operator==(QuBitField const& v1, QuBitField const& v2) { return v1.nr_ == v2.nr_ && v1.ni_ == v2.ni_ && v1.rr_ == v2.rr_ && v1.ri_ == v2.ri_; }
-  friend bool operator!=(QuBitField const& v1, QuBitField const& v2) { return v1.nr_ != v2.nr_ || v1.ni_ != v2.ni_ || v1.rr_ != v2.rr_ || v1.ri_ != v2.ri_; }
+  friend bool operator==(QuBitField const& v1, QuBitField const& v2) { return v1.m_sum == v2.m_sum; }
+  friend bool operator!=(QuBitField const& v1, QuBitField const& v2) { return v1.m_sum != v2.m_sum; }
 
  public:
   // For printing (override virtual functions of formula::Sum).
-  bool starts_with_a_minus() const override { return nr_ < 0 || (nr_ == 0 && (ni_ < 0 || (ni_ == 0 && (rr_ < 0 || (rr_ == 0 && ri_ < 0))))); }
-  bool has_multiple_terms() const override { return (nr_ != 0 ? 1 : 0) + (ni_ != 0 ? 1 : 0) + (rr_ != 0 || ri_ != 0 ? 1 : 0) > 1; }
-  bool is_zero() const override { return nr_ == 0 && ni_ == 0 && rr_ == 0 && ri_ == 0; }
-  bool is_unity() const override { return (nr_ == 1 || nr_ == -1) && ni_ == 0 && rr_ == 0 && ri_ == 0; }
+  bool starts_with_a_minus() const override { return m_sum[nr_] < 0 || (m_sum[nr_] == 0 && (m_sum[ni_] < 0 || (m_sum[ni_] == 0 && (m_sum[rr_] < 0 || (m_sum[rr_] == 0 && m_sum[ri_] < 0))))); }
+  bool has_multiple_terms() const override { return (m_sum[nr_] != 0 ? 1 : 0) + (m_sum[ni_] != 0 ? 1 : 0) + (m_sum[rr_] != 0 || m_sum[ri_] != 0 ? 1 : 0) > 1; }
+  bool is_zero() const override { return m_sum[nr_] == 0 && m_sum[ni_] == 0 && m_sum[rr_] == 0 && m_sum[ri_] == 0; }
+  bool is_unity() const override { return (m_sum[nr_] == 1 || m_sum[nr_] == -1) && m_sum[ni_] == 0 && m_sum[rr_] == 0 && m_sum[ri_] == 0; }
   void print_on(std::ostream& os, bool negate_all_terms, bool is_factor) const override;
-
-#if 0
- public:
-  // Implement virtual methods of Sum.
-  bool is_one() const override { return nr_ == 1 && ni_ == 0 && rr_ == 0 && ri_ == 0; }
-  char const* plus_string() const { return " + "; }
-  char const* minus_string() const { return " - "; }
-#endif
 };
 
 namespace gates {
@@ -136,7 +128,6 @@ struct exp<-1, 4> {
 } // namespace quantum
 
 // Add support for libeigen3. See https://eigen.tuxfamily.org/dox/TopicCustomizing_CustomScalar.html
-#include <Eigen/Core>
 
 namespace Eigen {
 
