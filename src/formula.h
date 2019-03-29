@@ -189,6 +189,11 @@ void Sum<SumContainer>::print_on(std::ostream& os, bool negate_all_terms, bool i
     if (needs_parens)
       os << ')';
   }
+  else
+  {
+    // "Derived class needs to override print_on() const.
+    assert(false);
+  }
 }
 
 template<class SumContainer>
@@ -199,6 +204,11 @@ bool Sum<SumContainer>::starts_with_a_minus() const
     for (auto&& term : m_sum)
       if (!formula::is_zero(term))
         return formula::starts_with_a_minus(term);
+  }
+  else
+  {
+    // Derived class needs to override starts_with_a_minus() const.
+    assert(false);
   }
   return false;
 }
@@ -213,6 +223,11 @@ bool Sum<SumContainer>::has_multiple_terms() const
       if (!formula::is_zero(term) && ++cnt > 1)
         return true;
   }
+  else
+  {
+    // Derived class needs to override has_multiple_terms() const.
+    assert(false);
+  }
   return false;
 }
 
@@ -226,7 +241,10 @@ bool Sum<SumContainer>::is_zero() const
         { return !i.is_zero(); });
   }
   else
-    return false;
+  {
+    // Derived class needs to override is_zero() const.
+    assert(false);
+  }
 }
 
 template<class SumContainer>
@@ -238,7 +256,10 @@ bool Sum<SumContainer>::is_unity() const
     return first != m_sum.end() && formula::is_unity(*first);
   }
   else
-    return false;
+  {
+    // Derived class needs to override is_unity() const.
+    assert(false);
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -248,52 +269,84 @@ bool Sum<SumContainer>::is_unity() const
 template<class ProductContainer>
 void Product<ProductContainer>::print_on(std::ostream& os) const
 {
-  if (is_zero())
-    os << "0";
-  else if (is_unity())
-    os << "1";
+  if constexpr (has_const_iterator<ProductContainer>::value)
+  {
+    if (is_zero())
+      os << "0";
+    else if (is_unity())
+      os << "1";
+    else
+    {
+      bool first_term = true;
+      auto first = m_product.begin();
+      do
+      {
+        if (!formula::is_unity(*first))
+        {
+          if (!first_term)
+            os << multiply_string();
+          print_formula_on(*first, os, false, true);
+          first_term = false;
+        }
+      }
+      while (++first != m_product.end());
+    }
+  }
   else
   {
-    bool first_term = true;
-    auto first = m_product.begin();
-    do
-    {
-      if (!formula::is_unity(*first))
-      {
-        if (!first_term)
-          os << multiply_string();
-        print_formula_on(*first, os, false, true);
-        first_term = false;
-      }
-    }
-    while (++first != m_product.end());
+    // Derived class needs to override print_on(std::ostream& os) const.
+    assert(false);
   }
 }
 
 template<class ProductContainer>
 bool Product<ProductContainer>::starts_with_a_minus() const
 {
-  bool result = false;
-  std::for_each(m_product.begin(), m_product.end(),
-      [&result](typename ProductContainer::value_type const& factor)
-      { if (factor.starts_with_a_minus()) result = !result; });
-  return result;
+  if constexpr (has_const_iterator<ProductContainer>::value)
+  {
+    bool result = false;
+    std::for_each(m_product.begin(), m_product.end(),
+        [&result](typename ProductContainer::value_type const& factor)
+        { if (factor.starts_with_a_minus()) result = !result; });
+    return result;
+  }
+  else
+  {
+    // Derived class needs to override starts_with_a_minus() const.
+    assert(false);
+  }
 }
 
 template<class ProductContainer>
 bool Product<ProductContainer>::is_zero() const
 {
-  return std::any_of(m_product.begin(), m_product.end(),
-      [](typename ProductContainer::value_type const& factor)
-      { return factor.is_zero(); });
+  if constexpr (has_const_iterator<ProductContainer>::value)
+  {
+    return std::any_of(m_product.begin(), m_product.end(),
+        [](typename ProductContainer::value_type const& factor)
+        { return factor.is_zero(); });
+  }
+  else
+  {
+    // Derived needs to override is_zero() const.
+    assert(false);
+  }
 }
 
 template<class ProductContainer>
 bool Product<ProductContainer>::is_unity() const
 {
-  return std::all_of(m_product.begin(), m_product.end(),
-      [](typename ProductContainer::value_type const& factor)
-      { return factor.is_unity(); });
+  if constexpr (has_const_iterator<ProductContainer>::value)
+  {
+    return std::all_of(m_product.begin(), m_product.end(),
+        [](typename ProductContainer::value_type const& factor)
+        { return factor.is_unity(); });
+  }
+  else
+  {
+    // Derived needs to override is_unity() const.
+    assert(false);
+  }
 }
 
 //----------------------------------------------------------------------------
