@@ -99,7 +99,7 @@ void State::print_on(std::ostream& os) const
     os << prefix;
     if (entangled_state.starts_with_a_minus())
       os << '-';
-    entangled_state.print_on(os, false, true);
+    entangled_state.print_on(os, false, need_parens);
     prefix = " \u2297 ";        // " ⊗ "
   }
 }
