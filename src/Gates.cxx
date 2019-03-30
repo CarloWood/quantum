@@ -155,7 +155,7 @@ std::array<QMatrix, number_of_gates> const gate = {
 
 // Only needed in QState.cxx, but defined here to avoid static initialization fiasco.
 
-// (SH)⁻¹
+// SH
 QMatrix const SH = gate[S] * gate[H];
 
 // Identity matrix.
