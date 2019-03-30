@@ -21,15 +21,15 @@ class State
 {
  private:
   using q_index_type = utils::VectorIndex<index_category::qubits>;
-  using c_index_type = utils::VectorIndex<index_category::clbits>;
 
   Circuit const* m_circuit;                             // A pointer to the underlaying circuit that this is the state of.
   std::stack<InputCollector> m_stack;                   // A temporary stack used by `apply' to parse the circuit-building code.
   std::vector<EntangledState> m_separable_states;       // A list of separable states; the Kronecker product of which forms the complete state.
 
  private:
-  void apply(Circuit::QuBit::iterator node, q_index_type chain);
-  void apply(Circuit::QuBit::iterator node, InputCollector const& collector);
+  void apply(gates::GateInput const& gate_input, q_index_type chain);
+  void apply(gates::GateInput const& gate_input, InputCollector const& collector);
+  void apply(gates::measure const& measurement, q_index_type chain);
 
  public:
   State(Circuit const* circuit);

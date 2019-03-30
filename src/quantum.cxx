@@ -10,17 +10,18 @@ int main()
 {
   Debug(NAMESPACE_DEBUG::init());
 
-  Circuit qc(7, 0);
+  Circuit q(3, 3);
   {
     using namespace gates;
 
-    qc[5] - H - S     - co(1)         - co(2);
-    qc[3] - H - S_inv - CX(1) - H - T - CX(2) - T - H - S - X;
+    q[2] - H                      - co(3);
+    q[1] - H - co(1)          - S - CX(3);
+    q[0] - X - CX(1) - measure(0);
   }
 
   std::cout << "The circuit:\n";
-  std::cout << qc << std::endl;
-  qc.execute();
-  std::shared_ptr<State> state = qc.state();
+  std::cout << q << std::endl;
+  q.execute();
+  std::shared_ptr<State> state = q.state();
   std::cout << "\nResult: " << *state << '\n' << std::endl;
 }

@@ -11,13 +11,11 @@ namespace quantum {
 
 namespace index_category {
 enum qubits {};         // Index into quantum register.
-enum clbits {};         // Index into classical register.
 } // namespace category
 
 class Circuit;
 
 using q_index_type = utils::VectorIndex<index_category::qubits>;
-using c_index_type = utils::VectorIndex<index_category::clbits>;
 
 namespace gates {
 
@@ -27,11 +25,14 @@ class GateInput
  public:
   virtual ~GateInput() { }
   virtual int number_of_inputs() const = 0;
+  virtual bool is_measurement() const { return false; }
   virtual int rowbit() const { assert(false); }
   virtual q_index_type next_chain(Circuit const* UNUSED_ARG(circuit), int UNUSED_ARG(rowbit)) const { assert(false); }
   virtual QMatrix const& matrix() const = 0;
   virtual QMatrixX const& matrixX() const { assert(false); }
   virtual void print_on(std::ostream& os) const = 0;
+
+  friend std::ostream& operator<<(std::ostream& os, GateInput const& gate_input) { gate_input.print_on(os); return os; }
 };
 
 template<int n>
@@ -47,7 +48,7 @@ using SingleInput = MultiInput<1>;
 class ControlledNOT : public MultiInput<2>
 {
  protected:
-  int m_id;
+  int m_id;     // Link id of the contolled NOT; or - if this is a measurement - the classical bit index.
 
  private:
   int number_of_inputs() const override { return 2; }
@@ -117,17 +118,21 @@ class Standard : public SingleInput
   Standard(gate_t gate) : m_gate(gate) { }
 };
 
-// Measurement -- single input.
-class measure : public SingleInput
+// Measurement -- entanglement with a measurement bit (two realities in one).
+class measure : public ControlledNOT
 {
  private:
-  int m_classical_bit_index;
+  size_t m_number_of_quantum_bits;      // Copy of Circuit::m_number_of_quantum_bits (after the call to apply_offset).
 
-  QMatrix const& matrix() const override;
   void print_on(std::ostream& os) const override;
+  bool is_measurement() const override { return true; }
+
+  measure(int classical_bit_index, size_t number_of_quantum_bits) : ControlledNOT(classical_bit_index), m_number_of_quantum_bits(number_of_quantum_bits) { }
 
  public:
-  measure(int classical_bit_index) : m_classical_bit_index(classical_bit_index) { }
+  measure(int classical_bit_index) : ControlledNOT(classical_bit_index), m_number_of_quantum_bits(0) { }
+  measure apply_offset(size_t number_of_quantum_bits) const { return {m_id, number_of_quantum_bits}; }
+  q_index_type get_q_index() const { return q_index_type{m_number_of_quantum_bits + m_id}; }
 };
 
 } // namespace gates
@@ -153,6 +158,7 @@ class Circuit
     int number_of_inputs() const { return m_gate_input->number_of_inputs(); }
     q_index_type next_chain(Circuit const* circuit) const { return m_gate_input->next_chain(circuit, m_gate_input->rowbit()); }
     int rowbit() const { return m_gate_input->rowbit(); }
+    bool is_measurement() const { return m_gate_input->is_measurement(); }
     gates::GateInput const& gate_input() const { return *m_gate_input; }
 
     friend std::ostream& operator<<(std::ostream& os, Node const& node)
@@ -188,25 +194,15 @@ class Circuit
     using iterator = std::vector<Node>::iterator;
     iterator begin() { return m_chain.begin(); }
     iterator end() { return m_chain.end(); }
-  };
 
-  class Bit
-  {
-   private:
-    bool m_bit;
-    Circuit* m_circuit;
-    c_index_type m_classical_register_index;
-
-   public:
-    Bit(Circuit* circuit, c_index_type classical_register_index) : m_bit(false), m_circuit(circuit), m_classical_register_index(classical_register_index) { }
+    bool is_measurement() const { return m_quantum_register_index.get_value() >= m_circuit->m_number_of_quantum_bits; }
   };
 
   using quantum_register_type = utils::Vector<QuBit, q_index_type>;
-  using classical_register_type = utils::Vector<Bit, c_index_type>;
   using map_type = std::map<int, q_index_type>;
 
-  quantum_register_type m_quantum_register;
-  classical_register_type m_classical_register;
+  size_t m_number_of_quantum_bits;              // The real number of quantum bits.
+  quantum_register_type m_quantum_register;     // A QuBit for each quantum bit and one for each classical bit.
   std::shared_ptr<State> m_state;
   std::array<map_type, 2> m_map;
 
@@ -232,6 +228,7 @@ class Circuit
   q_index_type q_ibegin() const { return m_quantum_register.ibegin(); }
   q_index_type q_iend() const { return m_quantum_register.iend(); }
   q_index_type next_chain(int id, int rowbit) const;
+  unsigned long get_measurement_mask() const { return (1UL << m_quantum_register.size()) - (1UL << m_number_of_quantum_bits); }
 
   void execute();
   std::shared_ptr<State> state() const;

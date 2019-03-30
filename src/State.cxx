@@ -18,57 +18,65 @@ int State::apply(q_index_type& chain, Circuit::QuBit::iterator current_node)
   DoutEntering(dc::qapply|continued_cf, "State::apply(" << chain << ", " << *current_node << ")... ");
   if (current_node->number_of_inputs() > 1)
   {
-    InputCollector collector = m_stack.empty() ? InputCollector{} : m_stack.top();
-    if (collector.have_all_inputs(chain))
+    if (current_node->is_measurement())
     {
-      Dout(dc::qapply, "Popping " << collector << " from stack.");
-      m_stack.pop();                                                                                      // <--.
-    }                                                                                                     //    |
-    else                                                                                                  //    |
-    {                                                                                                     //    |
-      q_index_type next_chain = current_node->next_chain(m_circuit);                                      //    |
-      assert(next_chain != chain);                                                                        //    |
-      // When collector.have_all_inputs(next_chain) then we should set chain to next_chain and return -1.       |
-      // This will cause this function to be called again after which it will continue here: -------------------'
-      int ret = collector.have_all_inputs(next_chain) ? -1 : 1;
-      if (ret == 1)
-      {
-        Dout(dc::qapply, "Pushing to stack: " << chain);
-        m_stack.push(chain);
-      }
-      m_stack.top().add(chain, current_node->rowbit());
-      Dout(dc::qapply, "Setting chain to " << next_chain);
-      chain = next_chain;
-      Dout(dc::finish, "returning " << ret << '.');
-      return ret;
+      // Process measurement.
+      apply(static_cast<gates::measure const&>(current_node->gate_input()), chain);
     }
-    // Process multi-input.
-    apply(current_node, collector);
+    else
+    {
+      InputCollector collector = m_stack.empty() ? InputCollector{} : m_stack.top();
+      if (collector.have_all_inputs(chain))
+      {
+        Dout(dc::qapply, "Popping " << collector << " from stack.");
+        m_stack.pop();                                                                                      // <--.
+      }                                                                                                     //    |
+      else                                                                                                  //    |
+      {                                                                                                     //    |
+        q_index_type next_chain = current_node->next_chain(m_circuit);                                      //    |
+        assert(next_chain != chain);                                                                        //    |
+        // When collector.have_all_inputs(next_chain) then we should set chain to next_chain and return -1.       |
+        // This will cause this function to be called again after which it will continue here: -------------------'
+        int ret = collector.have_all_inputs(next_chain) ? -1 : 1;
+        if (ret == 1)
+        {
+          Dout(dc::qapply, "Pushing to stack: " << chain);
+          m_stack.push(chain);
+        }
+        m_stack.top().add(chain, current_node->rowbit());
+        Dout(dc::qapply, "Setting chain to " << next_chain);
+        chain = next_chain;
+        Dout(dc::finish, "returning " << ret << '.');
+        return ret;
+      }
+      // Process multi-input.
+      apply(current_node->gate_input(), collector);
+    }
     Dout(dc::finish, "returning 0.");
     return 0;
   }
   // Process single input.
-  apply(current_node, chain);
+  apply(current_node->gate_input(), chain);
   Dout(dc::finish, "returning 0.");
   Dout(dc::notice, "State now: " << *this);
   return 0;
 }
 
-void State::apply(Circuit::QuBit::iterator node, q_index_type chain)
+void State::apply(gates::GateInput const& gate_input, q_index_type chain)
 {
-  DoutEntering(dc::notice, "State::apply(" << *node << ", " << chain << ')');
+  DoutEntering(dc::notice, "State::apply(" << gate_input << ", " << chain << ')');
   for (auto entangled_state = m_separable_states.begin(); entangled_state != m_separable_states.end(); ++entangled_state)
     if (entangled_state->has(chain))
     {
-      entangled_state->apply(node->gate_input().matrix(), chain);
+      entangled_state->apply(gate_input.matrix(), chain);
       break;
     }
   Dout(dc::notice, "State now: " << *this);
 }
 
-void State::apply(Circuit::QuBit::iterator node, InputCollector const& collector)
+void State::apply(gates::GateInput const& gate_input, InputCollector const& collector)
 {
-  DoutEntering(dc::notice, "State::apply(" << *node << ", " << collector << ')');
+  DoutEntering(dc::notice, "State::apply(" << gate_input << ", " << collector << ')');
   auto entangled_state = m_separable_states.begin();
   while (!entangled_state->has(collector))
     ++entangled_state;
@@ -85,17 +93,46 @@ void State::apply(Circuit::QuBit::iterator node, InputCollector const& collector
         break;
       std::swap(*entangled_state, *new_end_entangled_state);
     }
-  first_entangled_state->apply(node->gate_input().matrixX(), collector);
+  first_entangled_state->apply(gate_input.matrixX(), collector);
   m_separable_states.erase(new_end_entangled_state, m_separable_states.end());
+  Dout(dc::notice, "State now: " << *this);
+}
+
+void State::apply(gates::measure const& measurement, q_index_type chain)
+{
+  DoutEntering(dc::notice, "State::apply(" << measurement << ", " << chain << ')');
+  // A measurement is an entanglement between the measured qubit and the
+  // "classical" bit that is transported to the outside world and becomes
+  // part of our conscious reality. This is entirely equivalent to a CNOT
+  // gate where the measured bit is the control input and the measurement
+  // bit corresponds to the changed input of the CNOT.
+  //
+  // a|0⟩ + b|1⟩ ----o---- Measured qubit (no collapsed wavefunction; nothing changed).
+  //                 |
+  //         |0⟩ ---(+)--- Classical measurement, entangled with measured qubit: a|00⟩ + b|11⟩.
+  //                                                                              ^       ^
+  //                                                                              /       \.
+  //                                                                       reality         reality
+  //                                                                       where we        where we
+  //                                                                       measured        measured
+  //                                                                       a 0.            a 1.
+  InputCollector collector;
+  collector.add(measurement.get_q_index(), 0);  // Normal input.
+  collector.add(chain, 1);                      // Control input.
+  apply(measurement, collector);
   Dout(dc::notice, "State now: " << *this);
 }
 
 void State::print_on(std::ostream& os) const
 {
+  unsigned long const measurement_mask = m_circuit->get_measurement_mask();
   bool const need_parens = m_separable_states.size() > 1;
   char const* prefix = "";
   for (auto entangled_state : adaptor::reversed(m_separable_states))
   {
+    // Skip all pure "measurement qubits" product states (should be just a single term).
+    if ((entangled_state.q_index_mask() & measurement_mask) == entangled_state.q_index_mask())
+      continue;
     os << prefix;
     if (entangled_state.starts_with_a_minus())
       os << '-';

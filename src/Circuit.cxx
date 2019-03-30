@@ -45,7 +45,12 @@ Circuit::QuBit& Circuit::QuBit::operator-(gates::co const& control_link)
 
 Circuit::QuBit& Circuit::QuBit::operator-(gates::measure const& measure)
 {
-  m_chain.push_back(measure);
+  // A measurement is treated as a CNOT gate, where the measured qubit
+  // is the control and an extra, special qubit is the input.
+  // The special measurement qubits come after the normal qubits, so
+  // pass the information about how many quantum bits there are before
+  // processing this "gate".
+  m_chain.push_back(measure.apply_offset(m_circuit->m_number_of_quantum_bits));
   return *this;
 }
 
@@ -66,12 +71,15 @@ void Circuit::saw(gates::ControlledNOT const& input, q_index_type quantum_regist
 
 void Circuit::reset(size_t number_of_quantum_bits, size_t number_of_classical_bits)
 {
+  // We treat measurements as entanglements (with 'extra' qubits).
+  // Therefore, add the number of classical bits to the number of quantum bits,
+  // but first remember how many real qubit there are (that is needed when
+  // printing the results, of course).
+  m_number_of_quantum_bits = number_of_quantum_bits;
+  number_of_quantum_bits += number_of_classical_bits;
   m_quantum_register.clear();
   for (size_t index = 0; index < number_of_quantum_bits; ++index)
     m_quantum_register.emplace_back(this, q_index_type{index});
-  m_classical_register.clear();
-  for (size_t index = 0; index < number_of_classical_bits; ++index)
-    m_classical_register.emplace_back(this, c_index_type{index});
   m_state.reset();
   for (auto&& m : m_map)
     m.clear();
@@ -79,6 +87,7 @@ void Circuit::reset(size_t number_of_quantum_bits, size_t number_of_classical_bi
 
 Circuit::QuBit& Circuit::operator[](size_t quantum_bit_index)
 {
+  assert(quantum_bit_index < m_number_of_quantum_bits);
   return m_quantum_register[q_index_type{quantum_bit_index}];
 }
 
@@ -146,15 +155,9 @@ void co::print_on(std::ostream& os) const
   os << "co(" << m_id << ')';
 }
 
-QMatrix const& measure::matrix() const
-{
-  Dout(dc::warning, "Calling measure::matrix()");
-  return gates::I;
-}
-
 void measure::print_on(std::ostream& os) const
 {
-  os << "measure(" << m_classical_bit_index << ')';
+  os << "measure(" << m_id << " [" << get_q_index() << "])";
 }
 
 } // namespace gates
@@ -169,7 +172,8 @@ void Circuit::QuBit::print_on(std::ostream& os) const
 std::ostream& operator<<(std::ostream& os, Circuit const& circuit)
 {
   for (auto&& qubit : adaptor::reversed(circuit.m_quantum_register))
-    os << qubit << std::endl;
+    if (!qubit.is_measurement())
+      os << qubit << std::endl;
   return os;
 }
 
