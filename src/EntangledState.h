@@ -35,6 +35,7 @@ class EntangledState : public formula::Sum<std::vector<QuBitField>> // List of a
   void apply(QMatrixX const& matrix, InputCollector const& inputs);
 
   void print_on(std::ostream& os, bool negate_all_terms, bool is_factor) const;
+  void print_measurement_permutations_on(std::ostream& os, Circuit const* circuit) const;
 
   // Accessor for m_q_index_mask.
   unsigned long q_index_mask() const { return m_q_index_mask; }

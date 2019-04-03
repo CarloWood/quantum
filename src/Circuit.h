@@ -229,6 +229,8 @@ class Circuit
   q_index_type q_iend() const { return m_quantum_register.iend(); }
   q_index_type next_chain(int id, int rowbit) const;
   unsigned long get_measurement_mask() const { return (1UL << m_quantum_register.size()) - (1UL << m_number_of_quantum_bits); }
+  bool is_measurement(q_index_type q_index) const { return q_index.get_value() >= m_number_of_quantum_bits; }
+  size_t classical_index(q_index_type q_index) const { return q_index.get_value() - m_number_of_quantum_bits; }
 
   void execute();
   std::shared_ptr<State> state() const;

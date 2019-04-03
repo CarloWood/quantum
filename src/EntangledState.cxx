@@ -1,7 +1,10 @@
 #include "sys.h"
 #include "EntangledState.h"
 #include "utils/is_power_of_two.h"
+#include "utils/BitSet.h"
+#include "utils/reversed.h"
 #include <iostream>
+#include <set>
 
 namespace quantum {
 
@@ -186,6 +189,20 @@ void EntangledState::apply(QMatrixX const& matrix, InputCollector const& inputs)
   Dout(dc::notice, "Result: " << *this);
 }
 
+static std::array<char const*, 10> subscript = { "\u2080", "\u2081", "\u2082", "\u2083", "\u2084", "\u2085", "\u2086", "\u2087", "\u2088", "\u2089" };
+
+std::string subscript_str(int val)
+{
+  std::string result;
+  if (val > 9)
+  {
+    result = subscript_str(val / 10);
+    val %= 10;
+  }
+  result += subscript[val];
+  return result;
+}
+
 void print_subscript_on(std::ostream& os, int val)
 {
   if (val > 9)
@@ -193,8 +210,7 @@ void print_subscript_on(std::ostream& os, int val)
     print_subscript_on(os, val / 10);
     val %= 10;
   }
-  static std::array<char const*, 10> substript = { "\u2080", "\u2081", "\u2082", "\u2083", "\u2084", "\u2085", "\u2086", "\u2087", "\u2088", "\u2089" };
-  os << substript[val];
+  os << subscript[val];
 }
 
 void EntangledState::merge(EntangledState const& entangled_state)
@@ -262,6 +278,171 @@ void EntangledState::print_on(std::ostream& os, bool negate_all_terms, bool is_f
   if (needs_parens)
     os << ')';
   //--------------------------------------------------------------------------
+}
+
+class MeasurementEntangledProductState : public formula::Product<std::array<QuBitField, 1>>
+{
+ private:
+  std::map<int, char> m_product_state;
+
+ public:
+  MeasurementEntangledProductState(QuBitField const& amplitude, std::map<int, char>&& product_state) :
+    formula::Product<std::array<QuBitField, 1>>({ amplitude }), m_product_state(std::move(product_state)) { }
+
+  bool starts_with_a_minus() const override { return m_product[0].starts_with_a_minus(); }
+  bool is_zero() const override { return m_product[0].is_zero(); }
+  bool is_unity() const override { return false; }
+  void print_on(std::ostream& os) const
+  {
+    m_product[0].print_on(os, false, true);
+    os << "\u00b7|"; // "·|"
+    for (auto&& z_state : adaptor::reversed(m_product_state))
+      os << z_state.second + subscript_str(z_state.first);
+    os << "\u27e9"; // "⟩"
+    os << "\tChance: " << (m_product[0] * m_product[0].conjugate());
+  }
+};
+
+class MeasurementEntangledSubState : public formula::Sum<std::vector<MeasurementEntangledProductState>>
+{
+ public:
+  // Construct an empty State, with no product states yet :).
+  MeasurementEntangledSubState() : formula::Sum<std::vector<MeasurementEntangledProductState>>({}) { }
+
+  void add(QuBitField const& amplitude, std::map<int, char>&& product_state) { m_sum.emplace_back(amplitude, std::move(product_state)); }
+};
+
+void EntangledState::print_measurement_permutations_on(std::ostream& os, Circuit const* circuit) const
+{
+  unsigned long const all_measurements_mask = circuit->get_measurement_mask();
+  using measurement_mask_type = utils::BitSet<unsigned long>;   // A bitset of measurement bits.
+  using measurement_bit_type = utils::bitset::Index;            // The index of a single measurement bit.
+  // For example, suppose we have 19 qubits and 10 measurement bits:
+  //
+  //                        22222222211111111110000000000 } -- q_index runs from 0 to 28.
+  //               q_index: 87654321098765432109876543210 }
+  // all_measurements_mask: 11111111110000000000000000000   -- The 10 high qubits are the measurement bits.
+  //        m_q_index_mask: 00100100010001010001000011000   -- The qubits involved in this EntangledState.
+  //      measurement_mask: 00100100010000000000000000000   -- The measurement bits involved in this EntangledState.
+  //                rowbit:   7  2   3   0 6   1    54      -- 'Abitrary' mapping. Rowbit here runs from 0 to 15, and when
+  //                                                           used as index into m_q_index[rowbit] we get the q_index.
+  // The vector measurement_bits will contain:
+  //             index:0    00000100000000000000000000000
+  //                   1    00000000010000000000000000000
+  //                   2    00100000000000000000000000000
+
+  // The measurement bits that take part in this EntangledState.
+  measurement_mask_type const measurement_mask{m_q_index_mask & all_measurements_mask};
+
+  using rowbit_mask_type = utils::BitSet<unsigned long>;        // A bitset of rowbit bits.
+  using rowbit_type = utils::bitset::Index;                     // The index of a single rowbit bit (usually just called 'rowbit' despite that it is an index).
+  // Hence, a row (for this EntangledState matrix) has number_of_rowbits = 8 bits:
+  //                   rowbit: 76543210                         // rowbit runs from 0 (rowbit_begin) to 7 (rowbit_end - 1).
+  // rowbit_measurements_mask: 10001100   -- Only bits 2, 3 and 7 correspond to measurement bits.
+
+  // The total number of rowbits of this EntangledState.
+  int8_t const number_of_rowbits = m_number_of_quantum_bits;
+
+  // The rowbit range.
+  rowbit_type const rowbit_begin = utils::bitset::index_begin;
+  rowbit_type const rowbit_end = utils::bitset::IndexPOD{number_of_rowbits};
+
+  // Convert the measurement bits in m_q_index to a vector of measurement_bit_type.
+  std::vector<std::pair<measurement_bit_type, rowbit_type>> measurement_bits;   // A list of the q_index (as measurement_bit_type) / rowbit index
+                                                                                // pairs of measurement bits involved in this EntangledState.
+  rowbit_mask_type rowbit_measurements_mask;                    // A mask with all of those bits.
+  rowbit_measurements_mask.reset();
+  for (rowbit_type rowbit{rowbit_begin}; rowbit != rowbit_end; ++rowbit)
+  {
+    // Convert the rowbit into the corresponding q_index, as measurement_bit_type.
+    int8_t const quantum_register_index = m_q_index[rowbit()].get_value();
+    measurement_bit_type const q_index = utils::bitset::IndexPOD{quantum_register_index};
+    // When it is actually a measurement bit (and not a normal qubit), store it:
+    if (measurement_mask.test(q_index))
+    {
+      rowbit_measurements_mask.set(rowbit);
+      measurement_bits.emplace_back(q_index, rowbit);
+    }
+  }
+
+  using perm_mask_type = utils::BitSet<unsigned long>;          // A bitset of permutation bits.
+  using perm_type = utils::bitset::Index;                       // The index of a single permutation bit.
+  // And the permutation thereof has 3 (number_of_measurement_bits) bits:
+  //                              732  -- Corresponding rowbit
+  //                              210  -- A perm runs from 0 (perm_begin) to 2 (perm_end - 1).
+  // measurement_bit_permutation: 000  00000000 <-- corresponding measurement_bits_permutation_mask
+  //                              001  00000100
+  //                              010  00001000
+  //                              011  00001100
+  //                              100  10000000
+  //                              101  10000100
+  //                              110  10001000
+  //                              111  10001100
+
+  // The number of rowbits that correspond to measurement bits, in this EntangledState.
+  int8_t const number_of_measurement_bits = measurement_bits.size();
+
+  // The perm range.
+  perm_type const perm_begin = utils::bitset::index_begin;
+  perm_type const perm_end = utils::bitset::IndexPOD{number_of_measurement_bits};
+
+  // The row range.
+  rowbit_mask_type const row_begin{rowbit_mask_type::mask_type(0)};
+  rowbit_mask_type const row_end{rowbit_mask_type::mask_type(1) << number_of_rowbits};
+
+  // Run over all measurement permutations.
+  perm_mask_type const measurement_bit_permutation_end{perm_mask_type::mask_type(1) << number_of_measurement_bits};
+  perm_mask_type measurement_bit_permutation{perm_mask_type::mask_type(0)};
+  for (perm_mask_type measurement_bit_permutation{perm_mask_type::mask_type(0)};
+       measurement_bit_permutation != measurement_bit_permutation_end;
+       ++measurement_bit_permutation)
+  {
+    std::map<int, char> classical_bits;
+    rowbit_mask_type measurement_bits_permutation_mask;
+    measurement_bits_permutation_mask.reset();
+    for (perm_type i{perm_begin}; i != perm_end; ++i)
+    {
+      char c;
+      if (measurement_bit_permutation.test(i))
+      {
+        measurement_bits_permutation_mask.set(measurement_bits[i()].second);
+        c = '1';
+      }
+      else
+        c = '0';
+      size_t measurement_bit_q_index_val = measurement_bits[i()].first();
+      q_index_type measurement_bit_q_index(measurement_bit_q_index_val);
+      classical_bits[circuit->classical_index(measurement_bit_q_index)] = c;
+    }
+    std::string prefix = "\n";
+    for (auto&& classical_bit : adaptor::reversed(classical_bits))
+      prefix += classical_bit.second + subscript_str(classical_bit.first);
+    prefix += ": ";
+    MeasurementEntangledSubState mess;
+    // Run over all possible rows to find those that correspond with this permutation.
+    for (rowbit_mask_type row{row_begin}; row != row_end; ++row)
+    {
+      // Only consider the product states of this measurement permutation.
+      if ((row & rowbit_measurements_mask) == measurement_bits_permutation_mask)
+      {
+        // Don't print anything if it doesn't exist.
+        if (m_sum[row()].is_zero())
+          continue;
+        std::map<int, char> product_state;
+        for (rowbit_type rowbit{rowbit_begin}; rowbit != rowbit_end; ++rowbit)
+        {
+          char c = row.test(rowbit) ? '1' : '0';
+          int8_t const quantum_register_index = m_q_index[rowbit()].get_value();
+          measurement_bit_type const q_index = utils::bitset::IndexPOD{quantum_register_index};
+          // When it is not a measurement bit, store it:
+          if (!measurement_mask.test(q_index))
+            product_state[quantum_register_index] = c;
+        }
+        mess.add(m_sum[row()], std::move(product_state));
+      }
+    }
+    os << prefix << mess;
+  }
 }
 
 void swap(EntangledState& lhs, EntangledState& rhs)

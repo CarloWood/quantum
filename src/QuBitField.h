@@ -67,6 +67,8 @@ class QuBitField : public formula::Sum<Eigen::Matrix<mpq_rational, 4, 1>>
   friend bool operator==(QuBitField const& v1, QuBitField const& v2) { return v1.m_sum == v2.m_sum; }
   friend bool operator!=(QuBitField const& v1, QuBitField const& v2) { return v1.m_sum != v2.m_sum; }
 
+  QuBitField conjugate() const { return { m_sum[0], -m_sum[1], m_sum[2], -m_sum[3] }; }
+
  public:
   // For printing (override virtual functions of formula::Sum).
   bool starts_with_a_minus() const override { return m_sum[nr_] < 0 || (m_sum[nr_] == 0 && (m_sum[ni_] < 0 || (m_sum[ni_] == 0 && (m_sum[rr_] < 0 || (m_sum[rr_] == 0 && m_sum[ri_] < 0))))); }

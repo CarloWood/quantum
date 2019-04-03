@@ -10,13 +10,12 @@ int main()
 {
   Debug(NAMESPACE_DEBUG::init());
 
-  Circuit q(3, 3);
+  Circuit q(2, 2);
   {
     using namespace gates;
 
-    q[2] - H                      - co(3);
-    q[1] - H - co(1)          - S - CX(3);
-    q[0] - X - CX(1) - measure(0);
+    q[1] - H - co(0) - H - measure(0);
+    q[0]     - CX(0) - S - H - T_inv - H - measure(1);
   }
 
   std::cout << "The circuit:\n";

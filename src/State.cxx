@@ -127,6 +127,7 @@ void State::print_on(std::ostream& os) const
 {
   unsigned long const measurement_mask = m_circuit->get_measurement_mask();
   bool const need_parens = m_separable_states.size() > 1;
+
   char const* prefix = "";
   for (auto entangled_state : adaptor::reversed(m_separable_states))
   {
@@ -138,6 +139,46 @@ void State::print_on(std::ostream& os) const
       os << '-';
     entangled_state.print_on(os, false, need_parens);
     prefix = " \u2297 ";        // " ⊗ "
+  }
+  os << " =\n";
+
+  // First print the isolated quantum state -- not entangled with measurement bits.
+  int cnt = 0;
+  /* char const* */ prefix = "";
+  for (auto entangled_state : adaptor::reversed(m_separable_states))
+  {
+    // Skip all pure "measurement qubits" product states (should be just a single term).
+    if ((entangled_state.q_index_mask() & measurement_mask) == entangled_state.q_index_mask())
+      continue;
+    unsigned long reality_mask = entangled_state.q_index_mask() & measurement_mask;
+    if (reality_mask == 0)
+    {
+      os << prefix;
+      if (entangled_state.starts_with_a_minus())
+        os << '-';
+      entangled_state.print_on(os, false, need_parens);
+      prefix = " \u2297 ";        // " ⊗ "
+    }
+    else
+      ++cnt;
+  }
+  // Next print the state that belongs each reality (measurement permutation) that is non-zero,
+  if (cnt == 0)  // if any.
+    return;
+  if (*prefix != '\0')
+    prefix = " \u2297";       // " ⊗", no trailing space because print_measurement_permutations_on prints things on a new line anyway.
+  for (auto entangled_state : adaptor::reversed(m_separable_states))
+  {
+    // Skip all pure "measurement qubits" product states (should be just a single term).
+    if ((entangled_state.q_index_mask() & measurement_mask) == entangled_state.q_index_mask())
+      continue;
+    unsigned long reality_mask = entangled_state.q_index_mask() & measurement_mask;
+    if (reality_mask != 0)
+    {
+      os << prefix;
+      entangled_state.print_measurement_permutations_on(os, m_circuit);
+      prefix = " \u2297";     // " ⊗"
+    }
   }
 }
 
