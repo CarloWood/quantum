@@ -72,15 +72,15 @@ This project uses git submodules. To clone this project, have the above installe
 
 <pre>
 <b>git clone --recursive https://github.com/CarloWood/quantum.git</b>
-<b>cd quantum
-<b>./autogen.sh
+<b>cd quantum</b>
+<b>./autogen.sh</b>
 </pre>
 
 After that it is the usual,
 
 <pre>
-./configure
-make
+<b>./configure</b>
+<b>make</b>
 </pre>
 
 assuming you're familiar with GNU autotool projects.
