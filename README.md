@@ -4,7 +4,7 @@ Play with quantum gates
 ## Usage
 
 Edit <code>src/quantum.cxx</code> and make a circuit using C++ code, but in a way that looks
-much like the normal way quantum circuits are compsed. For example,
+much like the normal way quantum circuits are composed. For example,
 
 <pre>
     q[1] - H - co(0) - H - measure(0);
@@ -15,7 +15,7 @@ Here each <code>q[...]</code> is a qubit, <code>H</code> is the Hademar gate, et
 (see [Gates.h](https://github.com/CarloWood/quantum/blob/master/src/Gates.h) for a list of all
 standard gates). <code>co(int)</code> is the control input of a controlled CNOT while
 <code>CX(int)</code> with the same int, is the corresponding controlled input. Finally,
-<code>measure(int)</code> measures to classical bit <code>int</code>. You must specify
+<code>measure(int)</code> measures the classical bit <code>int</code>. You must specify
 the number of qubits and classical bits at the moment you create <code>q</code>.
 
 Note that there can only be a single minus sign between the gates.
